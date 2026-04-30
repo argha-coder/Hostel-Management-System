@@ -5,9 +5,11 @@ const connectDB = async () => {
 
   let uri = process.env.MONGO_URI;
 
-  // Clean the URI (Remove surrounding quotes or whitespace from Vercel/Env)
+  // Clean the URI (Remove surrounding quotes, whitespace, or "MONGO_URI=" prefix)
   if (uri) {
-    uri = uri.trim().replace(/^["'](.+)["']$/, '$1');
+    uri = uri.trim()
+      .replace(/^["'](.+)["']$/, '$1')
+      .replace(/^MONGO_URI=\s*/i, '');
   }
 
   if (!uri || uri.includes('<db_password>')) {
