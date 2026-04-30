@@ -8,7 +8,10 @@ const connectDB = async () => {
   }
 
   // Set global buffering options
-  // mongoose.set("bufferCommands", false); 
+  mongoose.set("bufferCommands", true); 
+  // Set timeout for buffering (how long to wait for connection before failing query)
+  // 5 seconds is plenty for serverless; if it takes longer, it's usually a connection string or whitelist issue.
+  mongoose.set("bufferTimeoutMS", 5000); 
 
   try {
     console.log('⏳ Connecting to MongoDB...');

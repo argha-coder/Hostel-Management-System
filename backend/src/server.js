@@ -42,6 +42,26 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Deep Health Check (Database test)
+app.get('/api/db-health', async (req, res) => {
+  try {
+    await connectDB();
+    // Run a simple command to check DB responsiveness
+    const dbStatus = mongoose.connection.db.admin().ping();
+    res.json({
+      status: 'ok',
+      database: 'connected',
+      ping: await dbStatus
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      database: 'disconnected',
+      message: error.message
+    });
+  }
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
