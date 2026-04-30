@@ -19,7 +19,18 @@ dotenv.config();
 
 const app = express();
 
-// Connect to DB before handling requests (Crucial for Vercel)
+// 1. CORS Configuration (Must be first for Vercel preflights and errors)
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'https://hostel-management-system-bbf6.vercel.app',
+    ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : [])
+  ],
+  credentials: true
+}));
+
+// 2. Connect to DB before handling requests
 app.use(async (req, res, next) => {
   try {
     await connectDB();
@@ -37,17 +48,6 @@ app.use(async (req, res, next) => {
 app.get("/", (req, res) => {
   res.send("UHostel Backend Running 🚀");
 });
-
-// CORS Configuration
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'https://hostel-management-system-bbf6.vercel.app',
-    ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : [])
-  ],
-  credentials: true
-}));
 
 // Middleware
 app.use(express.json());
