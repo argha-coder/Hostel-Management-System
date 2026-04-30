@@ -19,6 +19,17 @@ dotenv.config();
 
 const app = express();
 
+// Connect to DB before handling requests (Crucial for Vercel)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('Database connection error in middleware:', error.message);
+    res.status(500).json({ message: 'Database connection failed' });
+  }
+});
+
 // Root Route
 app.get("/", (req, res) => {
   res.send("UHostel Backend Running 🚀");
@@ -46,7 +57,6 @@ app.get('/api/health', (req, res) => {
 app.get('/api/db-health', async (req, res) => {
   try {
     await connectDB();
-    // Run a simple command to check DB responsiveness
     const dbStatus = mongoose.connection.db.admin().ping();
     res.json({
       status: 'ok',
@@ -76,33 +86,27 @@ app.use('/api/notices', noticeRoutes);
 // Error Handler
 app.use((err, req, res, next) => {
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-
   res.status(statusCode).json({
     message: err.message,
-    stack: process.env.NODE_ENV === 'production'
-      ? null
-      : err.stack,
+    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
   });
 });
 
 const PORT = process.env.PORT || 5001;
 
-// Connect to DB before handling requests
-app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (error) {
-    res.status(500).json({ message: 'Database connection failed' });
-  }
-});
-
-// Local development
+// Start local server
 if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(` Server running on port ${PORT}`);
-  });
+  const startLocalServer = async () => {
+    try {
+      await connectDB();
+      app.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+      });
+    } catch (error) {
+      console.error("❌ Failed to start local server:", error.message);
+    }
+  };
+  startLocalServer();
 }
 
-// Export for Vercel serverless
 export default app;
