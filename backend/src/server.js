@@ -67,21 +67,22 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5001;
 
-// Start Server
-const startServer = async () => {
+// Connect to DB before handling requests
+app.use(async (req, res, next) => {
   try {
-    // Connect Database
     await connectDB();
-
-    // Start Express Server
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(` Server running on port ${PORT}`);
-    });
-
+    next();
   } catch (error) {
-    console.error(" Failed to start server:", error.message);
-    process.exit(1);
+    res.status(500).json({ message: 'Database connection failed' });
   }
-};
+});
 
-startServer();
+// Local development
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(` Server running on port ${PORT}`);
+  });
+}
+
+// Export for Vercel serverless
+export default app;
