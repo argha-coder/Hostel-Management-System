@@ -11,6 +11,16 @@ const Canteen = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('shop'); // 'shop' or 'orders'
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    description: '',
+    price: '',
+    category: 'Snacks',
+    image: '',
+    stock: 100
+  });
+
   const { userInfo } = useSelector(state => state.auth);
   const isAdmin = userInfo?.role === 'Admin';
 
@@ -93,6 +103,35 @@ const Canteen = () => {
     }
   };
 
+  const handleAddProduct = async (e) => {
+    e.preventDefault();
+    try {
+      const data = await api.post('/canteen/products', newProduct);
+      setProducts(prev => [...prev, data]);
+      setShowAddModal(false);
+      setNewProduct({
+        name: '',
+        description: '',
+        price: '',
+        category: 'Snacks',
+        image: '',
+        stock: 100
+      });
+    } catch (err) {
+      alert(err.message || 'Failed to add product');
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    if (!window.confirm('Are you sure you want to remove this item from the canteen?')) return;
+    try {
+      await api.delete(`/canteen/products/${productId}`);
+      setProducts(prev => prev.filter(p => p._id !== productId));
+    } catch (err) {
+      alert(err.message || 'Failed to delete product');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'Pending': return '#D97706';
@@ -115,7 +154,17 @@ const Canteen = () => {
               Order snacks, drinks and more from the hostel canteen
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '10px', background: 'var(--color-surface)', padding: '5px', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            {isAdmin && activeTab === 'shop' && (
+              <button 
+                onClick={() => setShowAddModal(true)}
+                className="btn-primary" 
+                style={{ padding: '8px 20px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <Plus size={18} /> Add Item
+              </button>
+            )}
+            <div style={{ display: 'flex', gap: '10px', background: 'var(--color-surface)', padding: '5px', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
             <button 
               onClick={() => setActiveTab('shop')}
               style={{ 
@@ -139,6 +188,7 @@ const Canteen = () => {
               Orders
             </button>
           </div>
+          </div>
         </header>
 
         {activeTab === 'shop' ? (
@@ -155,7 +205,15 @@ const Canteen = () => {
                   style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: '12px' }}
                 >
                   <div style={{ height: '140px', background: '#f4f4f4', borderRadius: '8px', overflow: 'hidden' }}>
-                    <img src={product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img 
+                      src={product.image} 
+                      alt={product.name} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      onError={(e) => {
+                        e.target.onerror = null; 
+                        e.target.src = 'https://via.placeholder.com/300x200?text=Product+Image';
+                      }}
+                    />
                   </div>
                   <div>
                     <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--color-accent)', fontWeight: 700 }}>{product.category}</span>
@@ -164,13 +222,24 @@ const Canteen = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
                     <span style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-accent)' }}>₹{product.price}</span>
-                    <button 
-                      onClick={() => addToCart(product)}
-                      className="btn-primary" 
-                      style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px' }}
-                    >
-                      <Plus size={16} /> Add
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {isAdmin && (
+                        <button 
+                          onClick={() => handleDeleteProduct(product._id)}
+                          className="btn-secondary" 
+                          style={{ padding: '6px', borderRadius: '6px', color: '#DC2626', borderColor: '#FCA5A5' }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => addToCart(product)}
+                        className="btn-primary" 
+                        style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px' }}
+                      >
+                        <Plus size={16} /> Add
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               ))}
@@ -281,6 +350,90 @@ const Canteen = () => {
             ))}
           </div>
         )}
+
+        {/* Add Product Modal */}
+        <AnimatePresence>
+          {showAddModal && (
+            <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(17, 24, 39, 0.4)', backdropFilter: 'blur(4px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="minimal-card" 
+                style={{ width: '450px', padding: '30px' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--color-accent)' }}>Add Canteen Item</h2>
+                  <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}><Plus size={24} style={{ transform: 'rotate(45deg)' }} /></button>
+                </div>
+                <form onSubmit={handleAddProduct} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '5px' }}>Product Name</label>
+                    <input 
+                      type="text" 
+                      className="input-outline" 
+                      placeholder="e.g. Cold Coffee"
+                      value={newProduct.name}
+                      onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '5px' }}>Description</label>
+                    <textarea 
+                      className="input-outline" 
+                      placeholder="Brief details about the item..."
+                      style={{ height: '80px', resize: 'none' }}
+                      value={newProduct.description}
+                      onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '5px' }}>Price (₹)</label>
+                      <input 
+                        type="number" 
+                        className="input-outline" 
+                        placeholder="0"
+                        value={newProduct.price}
+                        onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '5px' }}>Category</label>
+                      <select 
+                        className="input-outline"
+                        value={newProduct.category}
+                        onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+                      >
+                        <option value="Snacks">Snacks</option>
+                        <option value="Drinks">Drinks</option>
+                        <option value="Meals">Meals</option>
+                        <option value="Essentials">Essentials</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '5px' }}>Image URL (Optional)</label>
+                    <input 
+                      type="text" 
+                      className="input-outline" 
+                      placeholder="https://images.unsplash.com/..."
+                      value={newProduct.image}
+                      onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                    <button type="button" onClick={() => setShowAddModal(false)} className="btn-secondary" style={{ flex: 1 }}>Cancel</button>
+                    <button type="submit" className="btn-primary" style={{ flex: 1 }}>Add to Canteen</button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

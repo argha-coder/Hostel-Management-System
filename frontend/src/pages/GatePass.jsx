@@ -21,6 +21,15 @@ const GatePass = () => {
   const { userInfo } = useSelector(state => state.auth);
   const isAdmin = userInfo?.role === 'Admin';
 
+  // Get current time in ISO format for datetime-local min attribute
+  const getCurrentDateTime = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
+  };
+  
+  const minDateTime = getCurrentDateTime();
+
   useEffect(() => {
     if (userInfo) {
       fetchGatePasses();
@@ -42,6 +51,23 @@ const GatePass = () => {
   const handleApply = async (e) => {
     e.preventDefault();
     if (!reason || !departureTime || !returnTime) return;
+
+    const now = new Date();
+    const departureDate = new Date(departureTime);
+    
+    // Set to start of minute for comparison
+    now.setSeconds(0, 0);
+    departureDate.setSeconds(0, 0);
+
+    if (departureDate < now) {
+      alert('Departure time cannot be in the past');
+      return;
+    }
+
+    if (new Date(returnTime) <= departureDate) {
+      alert('Return time must be after departure time');
+      return;
+    }
     
     try {
       const data = await api.post('/gatepass', {
@@ -162,6 +188,7 @@ const GatePass = () => {
                     type="datetime-local"
                     className="input-outline" 
                     value={departureTime} 
+                    min={minDateTime}
                     onChange={(e) => setDepartureTime(e.target.value)} 
                   />
                 </div>
@@ -171,6 +198,7 @@ const GatePass = () => {
                     type="datetime-local"
                     className="input-outline" 
                     value={returnTime} 
+                    min={departureTime || minDateTime}
                     onChange={(e) => setReturnTime(e.target.value)} 
                   />
                 </div>

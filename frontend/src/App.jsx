@@ -13,6 +13,7 @@ import GatePass from './pages/GatePass';
 import Canteen from './pages/Canteen';
 import Notices from './pages/Notices';
 import Bookings from './pages/Bookings';
+import ChangePassword from './pages/ChangePassword';
 import ProtectedRoute from './components/ProtectedRoute';
 import ChatBox from './components/ChatBox';
 
@@ -47,12 +48,12 @@ function App() {
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/rooms" element={<ProtectedRoute><Rooms /></ProtectedRoute>} />
-        <Route path="/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
         <Route path="/students" element={<ProtectedRoute><Students /></ProtectedRoute>} />
         <Route path="/fines" element={<ProtectedRoute><Fines /></ProtectedRoute>} />
         <Route path="/gatepass" element={<ProtectedRoute><GatePass /></ProtectedRoute>} />
         <Route path="/canteen" element={<ProtectedRoute><Canteen /></ProtectedRoute>} />
         <Route path="/notices" element={<ProtectedRoute><Notices /></ProtectedRoute>} />
+        <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
       </Routes>
       {userInfo && <ChatBox />}
     </div>

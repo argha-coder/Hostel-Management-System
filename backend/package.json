@@ -1,16 +1,23 @@
 {
-  "name": "backend",
+  "name": "uhostel-backend",
   "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon server.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "description": "UHostel Management System — REST API server (Node.js + Express + MongoDB)",
+  "author": "UHostel Team",
+  "license": "MIT",
+  "private": true,
   "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "seed": "node scripts/seed.js",
+    "seed:canteen": "node scripts/seedCanteen.js",
+    "status": "node scripts/checkStatus.js"
+  },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
@@ -21,5 +28,8 @@
     "mongoose": "^9.3.3",
     "node-fetch": "^2.7.0",
     "nodemailer": "^8.0.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
   }
 }
