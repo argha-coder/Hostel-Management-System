@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../store/authSlice';
 import OTPInput from '../components/OTPInput';
+import { api } from '../utils/api';
 import { Mail, Lock, User, ArrowRight, Shield } from 'lucide-react';
 
 /* ── tiny floating dot ── */
@@ -55,21 +56,11 @@ const Register = () => {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5001/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ name, email, password }),
-      });
-      if (res.ok) {
-        setStep(2);
-      } else {
-        const data = await res.json();
-        setError(data.message || 'Registration failed');
-      }
+      await api.post('/auth/register', { name, email, password });
+      setStep(2);
     } catch (err) {
       console.error('Registration Error:', err);
-      setError(`Server connection error: ${err.message}. Ensure backend is running on http://localhost:5001`);
+      setError(err.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -80,22 +71,12 @@ const Register = () => {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5001/api/auth/verify-register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ name, email, password, otp }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        dispatch(setCredentials(data));
-        navigate('/dashboard');
-      } else {
-        setError(data.message || 'Invalid OTP');
-      }
+      const data = await api.post('/auth/verify-register', { name, email, password, otp });
+      dispatch(setCredentials(data));
+      navigate('/dashboard');
     } catch (err) {
       console.error('Verify OTP Error:', err);
-      setError(`Server connection error: ${err.message}. Ensure backend is running on http://localhost:5001`);
+      setError(err.message || 'Invalid OTP');
     } finally {
       setLoading(false);
     }
