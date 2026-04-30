@@ -3,8 +3,19 @@ import mongoose from 'mongoose';
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) return;
 
-  if (!process.env.MONGO_URI || process.env.MONGO_URI.includes('<db_password>')) {
-    throw new Error('❌ MongoDB URI is not configured correctly');
+  let uri = process.env.MONGO_URI;
+
+  // Clean the URI (Remove surrounding quotes or whitespace from Vercel/Env)
+  if (uri) {
+    uri = uri.trim().replace(/^["'](.+)["']$/, '$1');
+  }
+
+  if (!uri || uri.includes('<db_password>')) {
+    throw new Error('MongoDB URI is missing or contains a placeholder');
+  }
+
+  if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
+    throw new Error(`Invalid MongoDB URI scheme. It starts with "${uri.substring(0, 10)}..." instead of "mongodb://"`);
   }
 
   // Set global buffering options
@@ -15,7 +26,7 @@ const connectDB = async () => {
 
   try {
     console.log('⏳ Connecting to MongoDB...');
-    await mongoose.connect(process.env.MONGO_URI, {
+    await mongoose.connect(uri, {
       serverSelectionTimeoutMS: 30000,
     });
     console.log('🚀 MongoDB Connected');
