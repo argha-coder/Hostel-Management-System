@@ -37,7 +37,12 @@ app.get("/", (req, res) => {
 
 // CORS Configuration
 app.use(cors({
-  origin: true,
+  origin: [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'https://hostel-management-system-bbf6.vercel.app',
+    ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : [])
+  ],
   credentials: true
 }));
 
