@@ -12,7 +12,7 @@ const orderSchema = new mongoose.Schema({
   payment_status: { type: String, enum: ['Paid', 'Pending'], default: 'Pending' }
 }, { 
   timestamps: true,
-  bufferCommands: false 
+   
 });
 
 export default mongoose.model('Order', orderSchema);

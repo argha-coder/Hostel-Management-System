@@ -7,7 +7,7 @@ const roomSchema = new mongoose.Schema({
   status: { type: String, enum: ['Clean', 'Repair', 'Occupied', 'Available'], default: 'Available' }
 }, { 
   timestamps: true,
-  bufferCommands: false 
+   
 });
 
 // Add indexes for optimization

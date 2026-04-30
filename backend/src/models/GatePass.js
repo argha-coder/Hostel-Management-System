@@ -10,7 +10,7 @@ const gatePassSchema = new mongoose.Schema({
   review_note: { type: String }, // Optional note from Warden
 }, { 
   timestamps: true,
-  bufferCommands: false 
+   
 });
 
 gatePassSchema.index({ student_id: 1 });

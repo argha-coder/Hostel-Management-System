@@ -10,7 +10,7 @@ const bookingSchema = new mongoose.Schema({
   status: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' }
 }, { 
   timestamps: true,
-  bufferCommands: false 
+   
 });
 
 // Add indexes for optimization

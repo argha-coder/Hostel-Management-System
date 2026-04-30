@@ -8,7 +8,7 @@ const noticeSchema = new mongoose.Schema({
   expiresAt: { type: Date }
 }, { 
   timestamps: true,
-  bufferCommands: false 
+   
 });
 
 // Index for fetching latest notices

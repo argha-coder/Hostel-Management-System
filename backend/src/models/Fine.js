@@ -10,7 +10,7 @@ const fineSchema = new mongoose.Schema({
   paid_at: { type: Date }
 }, { 
   timestamps: true,
-  bufferCommands: false 
+   
 });
 
 fineSchema.index({ student_id: 1 });

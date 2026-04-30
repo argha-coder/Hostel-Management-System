@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false }
 }, { 
   timestamps: true,
-  bufferCommands: false // Disable buffering for this schema specifically
+   // Disable buffering for this schema specifically
 });
 
 // Add indexes for optimization

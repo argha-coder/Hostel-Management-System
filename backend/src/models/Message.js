@@ -8,7 +8,7 @@ const messageSchema = new mongoose.Schema({
   isBroadcast: { type: Boolean, default: false },
 }, { 
   timestamps: true,
-  bufferCommands: false 
+   
 });
 
 // Index for faster queries on conversations

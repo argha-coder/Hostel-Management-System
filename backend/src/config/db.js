@@ -8,7 +8,7 @@ const connectDB = async () => {
   }
 
   // Set global buffering options
-  mongoose.set("bufferCommands", false); 
+  // mongoose.set("bufferCommands", false); 
 
   try {
     console.log('⏳ Connecting to MongoDB...');

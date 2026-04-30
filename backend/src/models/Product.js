@@ -10,7 +10,7 @@ const productSchema = new mongoose.Schema({
   isAvailable: { type: Boolean, default: true }
 }, { 
   timestamps: true,
-  bufferCommands: false 
+   
 });
 
 export default mongoose.model('Product', productSchema);
