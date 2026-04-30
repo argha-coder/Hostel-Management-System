@@ -18,33 +18,31 @@ import noticeRoutes from './routes/noticeRoutes.js';
 dotenv.config();
 
 const app = express();
+
+// Root Route
 app.get("/", (req, res) => {
   res.send("UHostel Backend Running 🚀");
 });
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:5174',
-  'http://127.0.0.1:5174',
-  ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
-];
 
+// CORS Configuration
 app.use(cors({
-  origin: (origin, callback) => {
-    // allow requests with no origin (e.g. mobile apps, curl)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    callback(new Error(`CORS blocked: ${origin}`));
-  },
+  origin: true,
   credentials: true
 }));
+
+// Middleware
 app.use(express.json());
 app.use(cookieParser());
 
+// Health Check Route
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'UHostel API is running' });
+  res.json({
+    status: 'ok',
+    message: 'UHostel API is running'
+  });
 });
 
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/bookings', bookingRoutes);
@@ -55,26 +53,33 @@ app.use('/api/fines', fineRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/notices', noticeRoutes);
 
+// Error Handler
 app.use((err, req, res, next) => {
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+
   res.status(statusCode).json({
     message: err.message,
-    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
+    stack: process.env.NODE_ENV === 'production'
+      ? null
+      : err.stack,
   });
 });
 
 const PORT = process.env.PORT || 5001;
 
+// Start Server
 const startServer = async () => {
   try {
-    await connectDB(); // ⬅️ wait for DB connection FIRST
+    // Connect Database
+    await connectDB();
 
+    // Start Express Server
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(` Server running on port ${PORT}`);
     });
 
   } catch (error) {
-    console.error("❌ Failed to start server:", error.message);
+    console.error(" Failed to start server:", error.message);
     process.exit(1);
   }
 };
