@@ -19,10 +19,11 @@ export const protect = async (req, res, next) => {
 
       if (user.role === 'Student' && !user.isVerified) {
         // Clear cookie to force logout
+        const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
         res.cookie('jwt', '', {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+          secure: isProduction,
+          sameSite: isProduction ? 'none' : 'lax',
           expires: new Date(0),
         });
         return res.status(403).json({ message: 'Your account has been unverified. Please contact the administrator.' });
