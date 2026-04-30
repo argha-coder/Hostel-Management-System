@@ -18,10 +18,25 @@ import noticeRoutes from './routes/noticeRoutes.js';
 dotenv.config();
 
 const app = express();
+app.get("/", (req, res) => {
+  res.send("UHostel Backend Running 🚀");
+});
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:5174',
+  'http://127.0.0.1:5174',
+  ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
+];
 
-app.use(cors({ 
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'], 
-  credentials: true 
+app.use(cors({
+  origin: (origin, callback) => {
+    // allow requests with no origin (e.g. mobile apps, curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS blocked: ${origin}`));
+  },
+  credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());

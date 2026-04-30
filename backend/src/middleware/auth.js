@@ -21,6 +21,8 @@ export const protect = async (req, res, next) => {
         // Clear cookie to force logout
         res.cookie('jwt', '', {
           httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
           expires: new Date(0),
         });
         return res.status(403).json({ message: 'Your account has been unverified. Please contact the administrator.' });

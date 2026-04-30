@@ -7,8 +7,8 @@ export const generateToken = (res, userId) => {
 
   res.cookie('jwt', token, {
     httpOnly: true,
-    secure: false, // Set to false for local development
-    sameSite: 'lax', // Changed from strict to lax for better cross-origin compatibility
+    secure: process.env.NODE_ENV === 'production', // true on Vercel (HTTPS), false locally
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' needed for cross-origin on Vercel
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 };
