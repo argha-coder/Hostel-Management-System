@@ -1,28 +1,28 @@
 # ─────────────────────────────────────────────
-#  UHostel — Root .gitignore
+
+# UHostel — Root .gitignore
+
 # ─────────────────────────────────────────────
 
 # ── Dependencies ──────────────────────────────
+
 node_modules/
-**/node_modules/
 
 # ── Environment Variables ─────────────────────
+
 .env
-.env.local
-.env.development
-.env.development.local
-.env.test
-.env.test.local
-.env.production
-.env.production.local
+.env.*
+!.env.example
 
 # ── Build Outputs ─────────────────────────────
+
 dist/
 build/
 out/
 .output/
 
-# ── Logs ──────────────────────────────────────
+# ── Logs ─────────────────────────────────────
+
 logs/
 *.log
 npm-debug.log*
@@ -30,13 +30,20 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# ── Runtime & Cache ───────────────────────────
+# ── Runtime & Cache ──────────────────────────
+
 .cache/
 .parcel-cache/
 .vite/
 *.tsbuildinfo
 
-# ── IDE & Editor ──────────────────────────────
+# ── Uploads (important for backend) ──────────
+
+uploads/
+public/uploads/
+
+# ── IDE & Editor ─────────────────────────────
+
 .vscode/
 !.vscode/extensions.json
 !.vscode/settings.json
@@ -47,7 +54,8 @@ pnpm-debug.log*
 *.sln
 *.sw?
 
-# ── OS Files ──────────────────────────────────
+# ── OS Files ─────────────────────────────────
+
 .DS_Store
 .DS_Store?
 ._*
@@ -57,11 +65,13 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# ── Testing ───────────────────────────────────
+# ── Testing ──────────────────────────────────
+
 coverage/
 .nyc_output/
 
-# ── Misc ──────────────────────────────────────
+# ── Misc ─────────────────────────────────────
+
 *.local
 *.pid
 *.seed

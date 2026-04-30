@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <div align="center">
 
 <img src="frontend/public/icon.svg" width="80" height="80" alt="UHostel Logo" />
@@ -186,3 +187,6 @@ This project is licensed under the [MIT License](LICENSE).
 <div align="center">
 Made with ❤️ for the IP Project
 </div>
+=======
+# Hostel-Management-System
+>>>>>>> 1296b0afec22d382b8a5f98bab6198524e8f3cd4
