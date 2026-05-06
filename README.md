@@ -28,6 +28,7 @@
 | 💸 **Fines** | Issue and track student fines |
 | 📅 **Bookings** | Manage room bookings |
 | 💬 **Chat** | Real-time messaging (AI/support) |
+| 🕵️ **Tracking** | Real-time visitor analytics via Discord webhooks |
 
 ---
 

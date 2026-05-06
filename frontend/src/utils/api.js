@@ -1,4 +1,13 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const isProduction = import.meta.env.PROD;
+const FALLBACK_URL = isProduction 
+  ? 'https://hostel-management-system-rosy.vercel.app/api' 
+  : 'http://localhost:5001/api';
+
+const BASE_URL = import.meta.env.VITE_API_URL || FALLBACK_URL;
+
+if (!isProduction) {
+  console.log(`[API] Base URL: ${BASE_URL}`);
+}
 
 const apiRequest = async (endpoint, options = {}) => {
   const { method = 'GET', body, headers = {} } = options;

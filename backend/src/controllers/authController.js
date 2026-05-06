@@ -46,6 +46,7 @@ export const registerUser = async (req, res) => {
       name,
     });
   } catch (error) {
+    console.error(`Registration error for ${email}:`, error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -96,6 +97,7 @@ export const verifyRegisterOTP = async (req, res) => {
       role: user.role,
     });
   } catch (error) {
+    console.error(`OTP verification error for ${email}:`, error);
     res.status(500).json({ message: error.message });
   }
 };

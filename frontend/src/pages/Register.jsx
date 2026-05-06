@@ -56,11 +56,13 @@ const Register = () => {
     setError('');
     setLoading(true);
     try {
+      console.log('Sending registration request to /auth/register...');
       await api.post('/auth/register', { name, email, password });
+      console.log('Registration request successful, moving to OTP step');
       setStep(2);
     } catch (err) {
       console.error('Registration Error:', err);
-      setError(err.message || 'Registration failed');
+      setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -71,12 +73,14 @@ const Register = () => {
     setError('');
     setLoading(true);
     try {
+      console.log('Verifying OTP...');
       const data = await api.post('/auth/verify-register', { name, email, password, otp });
+      console.log('OTP verification successful:', data);
       dispatch(setCredentials(data));
       navigate('/dashboard');
     } catch (err) {
       console.error('Verify OTP Error:', err);
-      setError(err.message || 'Invalid OTP');
+      setError(err.message || 'Invalid OTP. Please check your email.');
     } finally {
       setLoading(false);
     }
