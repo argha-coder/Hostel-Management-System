@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, Bed, CreditCard, LogOut, FileText, ShoppingCart, Megaphone, Key, User } from 'lucide-react';
+import { Home, Users, Bed, CreditCard, LogOut, FileText, ShoppingCart, Megaphone, Key, User, Receipt } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
 import { api } from '../utils/api';
@@ -19,7 +19,10 @@ const Sidebar = () => {
     { name: 'ECanteen', path: '/canteen', icon: <ShoppingCart size={20} />, roles: ['Admin', 'Student'] },
     { name: 'Students', path: '/students', icon: <Users size={20} />, roles: ['Admin'] },
     { name: 'Fines', path: '/fines', icon: <CreditCard size={20} />, roles: ['Admin', 'Student'] },
+    { name: 'Hostel Fees', path: '/fees', icon: <Receipt size={20} />, roles: ['Student'] },
+    { name: 'Payment Records', path: '/admin-payments', icon: <Receipt size={20} />, roles: ['Admin'] },
     { name: 'Security', path: '/change-password', icon: <Key size={20} />, roles: ['Student'] },
+
   ];
 
   const filteredNavItems = navItems.filter(item => item.roles.includes(userInfo?.role || 'Student'));

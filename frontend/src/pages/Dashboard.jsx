@@ -177,13 +177,48 @@ const Dashboard = () => {
           )}
         </header>
 
+        {!isAdmin && stats.bookings?.some(b => b.status === 'Approved' && b.payment_status === 'Unpaid') && (
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="glass-card"
+            style={{ 
+              marginBottom: '32px', 
+              background: 'linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)', 
+              border: '1px solid #FED7AA',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '20px 32px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#EA580C', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CreditCard size={24} />
+              </div>
+              <div>
+                <h4 style={{ color: '#9A3412', fontWeight: 800, fontSize: '1.1rem' }}>Hostel Fees Payment Pending</h4>
+                <p style={{ color: '#C2410C', fontWeight: 500, fontSize: '0.9rem' }}>Your room has been approved! Please complete the fee payment to finalize your allotment.</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => navigate('/fees')}
+              className="btn-primary"
+              style={{ background: '#EA580C', color: 'white', boxShadow: '0 4px 12px rgba(234, 88, 12, 0.2)' }}
+            >
+              Pay Now
+            </button>
+          </motion.div>
+        )}
+
+
         {isAdmin ? (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <div style={{ display: 'flex', gap: '24px', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', gap: '24px', marginBottom: '40px', flexWrap: 'wrap' }}>
               <DashboardRowItem 
                 title="Total Students" 
                 value={stats.totalStudents} 
@@ -209,6 +244,15 @@ const Dashboard = () => {
                 bgColor="#F5F3FF"
               />
               <DashboardRowItem 
+                title="Pending Fees" 
+                value={stats.pendingRevenue} 
+                prefix="₹" 
+                icon={<CreditCard size={24} />} 
+                onClick={() => navigate('/admin-payments')} 
+                color="#EC4899"
+                bgColor="#FDF2F8"
+              />
+              <DashboardRowItem 
                 title="Active Fines" 
                 value={stats.pendingFines} 
                 prefix="₹" 
@@ -218,6 +262,7 @@ const Dashboard = () => {
                 bgColor="#FFFBEB"
               />
             </div>
+
             
             <div style={{ display: 'flex', gap: '24px' }}>
                <div className="glass-card" style={{ flex: 2, padding: '32px', minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
@@ -298,15 +343,16 @@ const Dashboard = () => {
                 </div>
                 <div style={{ background: '#F8FAFC', padding: '24px', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
                   <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '20px', lineHeight: 1.5, fontWeight: 500 }}>
-                    Check your pending fines and hostel fees. You can pay them directly through the fines section.
+                    Check your pending hostel fees and room allotment charges. Pay them securely online.
                   </p>
                   <button 
-                    onClick={() => navigate('/fines')}
+                    onClick={() => navigate('/fees')}
                     className="btn-primary"
                     style={{ width: '100%', background: '#FFF7ED', color: '#EA580C', boxShadow: 'none' }}
                   >
-                    View Fines
+                    View Hostel Fees
                   </button>
+
                 </div>
               </div>
             </div>

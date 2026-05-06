@@ -7,7 +7,7 @@ import GatePass from '../models/GatePass.js';
 export const getDashboardStats = async (req, res) => {
   try {
     if (req.user.role === 'Admin') {
-      const [totalStudents, roomStats, pendingBookingsCount, pendingGatePassesCount, pendingFinesCount] = await Promise.all([
+      const [totalStudents, roomStats, pendingBookings, pendingGatePassesCount, pendingFinesData] = await Promise.all([
         User.countDocuments({ role: 'Student' }),
         Room.aggregate([
           {
@@ -32,25 +32,33 @@ export const getDashboardStats = async (req, res) => {
             }
           }
         ]),
-        Booking.countDocuments({ payment_status: 'Pending' }),
+        Booking.aggregate([
+          { $match: { status: 'Approved', payment_status: 'Unpaid' } },
+          { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]),
         GatePass.countDocuments({ status: 'Pending' }),
-        Fine.countDocuments({ status: 'Pending' })
+        Fine.aggregate([
+          { $match: { status: 'Unpaid' } },
+          { $group: { _id: null, total: { $sum: "$amount" } } }
+        ])
       ]);
 
       const stats = roomStats[0] || { totalCapacity: 0, totalOccupied: 0, availableRooms: 0 };
       const { totalCapacity, totalOccupied, availableRooms } = stats;
       
-      const pendingRevenue = pendingBookingsCount * 5000;
+      const pendingRevenue = pendingBookings[0]?.total || 0;
+      const pendingFinesTotal = pendingFinesData[0]?.total || 0;
 
       return res.json({
         role: 'Admin',
         totalStudents,
         availableRooms,
         pendingRevenue,
-        pendingFines: pendingFinesCount,
+        pendingFines: pendingFinesTotal,
         pendingGatePasses: pendingGatePassesCount,
         occupancyRate: totalCapacity ? Math.round((totalOccupied / totalCapacity) * 100) : 0
       });
+
     } else {
       // Student Dashboard Stats
       const [user, bookings, gatePasses, fines] = await Promise.all([

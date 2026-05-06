@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { User as UserIcon, Mail, Shield, CheckCircle, XCircle, Trash2 } from 'lucide-react';
+import { User as UserIcon, Mail, Shield, CheckCircle, XCircle, Trash2, Download } from 'lucide-react';
 import { api } from '../utils/api';
 
 const Students = () => {
@@ -12,6 +12,26 @@ const Students = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { userInfo } = useSelector(state => state.auth);
+
+  const exportToCSV = () => {
+    const headers = ['Name', 'Email', 'Room', 'Status'];
+    const csvRows = [
+      headers.join(','),
+      ...students.map(s => [
+        `"${s.name}"`,
+        `"${s.email}"`,
+        s.room_id?.room_number || 'Not Assigned',
+        s.isVerified ? 'Verified' : 'Unverified'
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvRows], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `students_list_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
 
   useEffect(() => {
     fetchStudents();
@@ -51,9 +71,18 @@ const Students = () => {
     <div style={{ display: 'flex', background: 'var(--color-bg)', minHeight: '100vh' }}>
       <Sidebar />
       <main style={{ marginLeft: '300px', padding: '40px', flex: 1 }}>
-        <header style={{ marginBottom: '40px' }}>
-          <h1 style={{ fontSize: '1.8rem', color: 'var(--color-accent)', fontWeight: 700 }}>Student Management</h1>
-          <p style={{ color: 'var(--color-text-muted)', marginTop: '5px' }}>View and manage hostel residents</p>
+        <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 style={{ fontSize: '1.8rem', color: 'var(--color-accent)', fontWeight: 700 }}>Student Management</h1>
+            <p style={{ color: 'var(--color-text-muted)', marginTop: '5px' }}>View and manage hostel residents</p>
+          </div>
+          <button 
+            onClick={exportToCSV}
+            className="btn-secondary" 
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}
+          >
+            <Download size={18} /> Export CSV
+          </button>
         </header>
 
         {error && (

@@ -14,6 +14,8 @@ import Canteen from './pages/Canteen';
 import Notices from './pages/Notices';
 import Bookings from './pages/Bookings';
 import ChangePassword from './pages/ChangePassword';
+import Fees from './pages/Fees';
+import AdminPayments from './pages/AdminPayments';
 import ProtectedRoute from './components/ProtectedRoute';
 import ChatBox from './components/ChatBox';
 
@@ -115,6 +117,8 @@ function App() {
         <Route path="/canteen" element={<ProtectedRoute><Canteen /></ProtectedRoute>} />
         <Route path="/notices" element={<ProtectedRoute><Notices /></ProtectedRoute>} />
         <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+        <Route path="/fees" element={<ProtectedRoute><Fees /></ProtectedRoute>} />
+        <Route path="/admin-payments" element={<ProtectedRoute><AdminPayments /></ProtectedRoute>} />
       </Routes>
       {userInfo && <ChatBox />}
     </div>

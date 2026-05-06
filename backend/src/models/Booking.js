@@ -6,8 +6,9 @@ const bookingSchema = new mongoose.Schema({
   start_date: { type: Date, required: true },
   duration: { type: Number, required: true }, // duration in months
   amount: { type: Number, required: true, default: 0 },
-  payment_status: { type: String, enum: ['Paid', 'Pending', 'Overdue'], default: 'Pending' },
+  payment_status: { type: String, enum: ['Paid', 'Unpaid', 'Overdue'], default: 'Unpaid' },
   status: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' }
+
 }, { 
   timestamps: true,
    

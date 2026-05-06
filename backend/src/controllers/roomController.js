@@ -1,5 +1,6 @@
 import Room from '../models/Room.js';
 import User from '../models/User.js';
+import Booking from '../models/Booking.js';
 
 // @desc    Get all rooms
 // @route   GET /api/rooms
@@ -49,6 +50,17 @@ export const assignRoom = async (req, res) => {
     // Assign new room
     student.room_id = room_id;
     await student.save();
+
+    // Create a booking record for fee tracking
+    await Booking.create({
+      student_id,
+      room_id,
+      start_date: new Date(),
+      duration: 6, // Default duration
+      amount: 30000, // Sample amount: 5000 * 6 months
+      status: 'Approved',
+      payment_status: 'Unpaid'
+    });
 
     newRoom.occupied += 1;
     if (newRoom.occupied >= newRoom.capacity) {

@@ -1,6 +1,9 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+
+dotenv.config();
+
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import connectDB from './config/db.js';
@@ -15,10 +18,10 @@ import fineRoutes from './routes/fineRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import noticeRoutes from './routes/noticeRoutes.js';
 import trackRoutes from './routes/trackRoutes.js';
-
-dotenv.config();
+import paymentRoutes from './routes/paymentRoutes.js';
 
 const app = express();
+
 
 // 1. CORS Configuration
 const allowedOrigins = [
@@ -109,6 +112,7 @@ app.use('/api/fines', fineRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/notices', noticeRoutes);
 app.use('/api/track', trackRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Error Handler
 app.use((err, req, res, next) => {

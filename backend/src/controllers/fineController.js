@@ -1,5 +1,6 @@
 import Fine from '../models/Fine.js';
 import User from '../models/User.js';
+import Payment from '../models/Payment.js';
 
 // @desc    Get all fines (Admin) or student's own fines (Student)
 // @route   GET /api/fines
@@ -15,6 +16,22 @@ export const getFines = async (req, res) => {
       .populate('student_id', 'name email')
       .populate('issued_by', 'name')
       .sort('-createdAt');
+
+    // Add payment details for student view
+    if (req.user.role === 'Student') {
+      const finesWithPayment = await Promise.all(fines.map(async (f) => {
+        const payment = await Payment.findOne({ fine_id: f._id, status: 'Paid' });
+        return {
+          ...f._doc,
+          payment_details: payment ? {
+            payment_id: payment.razorpay_payment_id,
+            date: payment.payment_date
+          } : null
+        };
+      }));
+      return res.json(finesWithPayment);
+    }
+
     res.json(fines);
   } catch (error) {
     res.status(500).json({ message: error.message });
