@@ -123,8 +123,26 @@ export const rejectBooking = async (req, res) => {
 // @access  Private/Admin
 export const getBookings = async (req, res) => {
   try {
-    const bookings = await Booking.find({}).populate('student_id', 'name email').populate('room_id', 'room_number');
-    res.json(bookings);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const [bookings, total] = await Promise.all([
+      Booking.find({})
+        .populate('student_id', 'name email')
+        .populate('room_id', 'room_number')
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Booking.countDocuments({})
+    ]);
+
+    res.json({
+      bookings,
+      page,
+      pages: Math.ceil(total / limit),
+      total
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -135,7 +153,9 @@ export const getBookings = async (req, res) => {
 // @access  Private
 export const getMyBookings = async (req, res) => {
   try {
-    const bookings = await Booking.find({ student_id: req.user._id }).populate('room_id', 'room_number');
+    const bookings = await Booking.find({ student_id: req.user._id })
+      .populate('room_id', 'room_number')
+      .lean();
     res.json(bookings);
   } catch (error) {
     res.status(500).json({ message: error.message });

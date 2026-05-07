@@ -4,6 +4,49 @@ import Booking from '../models/Booking.js';
 import Fine from '../models/Fine.js';
 import GatePass from '../models/GatePass.js';
 
+// @desc    Get essential dashboard metrics (Optimized for speed)
+// @route   GET /api/stats/summary
+export const getDashboardSummary = async (req, res) => {
+  try {
+    if (req.user.role === 'Admin') {
+      const [totalStudents, availableRoomsCount, pendingFeesData, activeFinesData, pendingGatePasses] = await Promise.all([
+        User.countDocuments({ role: 'Student' }),
+        Room.countDocuments({ status: 'Available', occupied: { $lt: 1 } }), // Simplified for summary
+        Booking.aggregate([
+          { $match: { status: 'Approved', payment_status: 'Unpaid' } },
+          { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]),
+        Fine.aggregate([
+          { $match: { status: 'Unpaid' } },
+          { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]),
+        GatePass.countDocuments({ status: 'Pending' })
+      ]);
+
+      return res.json({
+        totalStudents,
+        availableRooms: availableRoomsCount,
+        pendingFees: pendingFeesData[0]?.total || 0,
+        activeFines: activeFinesData[0]?.total || 0,
+        pendingGatePasses
+      });
+    } else {
+      // Student summary
+      const [fines, pendingGatePasses] = await Promise.all([
+        Fine.find({ student_id: req.user._id, status: 'Unpaid' }).select('amount').lean(),
+        GatePass.countDocuments({ student_id: req.user._id, status: 'Pending' })
+      ]);
+
+      return res.json({
+        pendingFines: fines.reduce((sum, f) => sum + f.amount, 0),
+        pendingGatePasses
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const getDashboardStats = async (req, res) => {
   try {
     if (req.user.role === 'Admin') {
@@ -62,10 +105,10 @@ export const getDashboardStats = async (req, res) => {
     } else {
       // Student Dashboard Stats
       const [user, bookings, gatePasses, fines] = await Promise.all([
-        User.findById(req.user._id).populate('room_id'),
-        Booking.find({ student_id: req.user._id }).populate('room_id'),
-        GatePass.find({ student_id: req.user._id }).sort('-createdAt').limit(5),
-        Fine.find({ student_id: req.user._id, status: 'Pending' })
+        User.findById(req.user._id).populate('room_id').lean(),
+        Booking.find({ student_id: req.user._id }).populate('room_id').lean(),
+        GatePass.find({ student_id: req.user._id }).sort('-createdAt').limit(5).lean(),
+        Fine.find({ student_id: req.user._id, status: 'Pending' }).lean()
       ]);
 
       let roommates = [];
@@ -73,7 +116,7 @@ export const getDashboardStats = async (req, res) => {
         roommates = await User.find({ 
           room_id: user.room_id._id, 
           _id: { $ne: user._id } 
-        }).select('name email');
+        }).select('name email').lean();
       }
 
       return res.json({

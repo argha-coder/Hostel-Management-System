@@ -7,8 +7,21 @@ import Booking from '../models/Booking.js';
 // @access  Private
 export const getRooms = async (req, res) => {
   try {
-    const rooms = await Room.find({});
-    res.json(rooms);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const [rooms, total] = await Promise.all([
+      Room.find({}).skip(skip).limit(limit).lean(),
+      Room.countDocuments({})
+    ]);
+
+    res.json({
+      rooms,
+      page,
+      pages: Math.ceil(total / limit),
+      total
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

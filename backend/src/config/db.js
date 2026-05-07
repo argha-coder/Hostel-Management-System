@@ -1,11 +1,18 @@
 import mongoose from 'mongoose';
 
-const connectDB = async () => {
-  if (mongoose.connection.readyState >= 1) return;
+/**
+ * Global is used here to maintain a cached connection across hot reloads
+ * in development and across function invocations in serverless environments.
+ */
+let cached = global.mongoose;
 
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+const connectDB = async () => {
   let uri = process.env.MONGO_URI;
 
-  // Clean the URI (Remove surrounding quotes, whitespace, or "MONGO_URI=" prefix)
   if (uri) {
     uri = uri.trim()
       .replace(/^["'](.+)["']$/, '$1')
@@ -16,26 +23,33 @@ const connectDB = async () => {
     throw new Error('MongoDB URI is missing or contains a placeholder');
   }
 
-  if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
-    throw new Error(`Invalid MongoDB URI scheme. It starts with "${uri.substring(0, 10)}..." instead of "mongodb://"`);
+  if (cached.conn) {
+    return cached.conn;
   }
 
-  // Set global buffering options
-  mongoose.set("bufferCommands", true); 
-  // Set timeout for buffering (how long to wait for connection before failing query)
-  // 5 seconds is plenty for serverless; if it takes longer, it's usually a connection string or whitelist issue.
-  mongoose.set("bufferTimeoutMS", 5000); 
+  if (!cached.promise) {
+    const opts = {
+      serverSelectionTimeoutMS: 30000,
+      bufferCommands: true,
+      maxPoolSize: 10, // Recommended for serverless to avoid connection spikes
+    };
+
+    console.log('⏳ Connecting to MongoDB (New Connection)...');
+    cached.promise = mongoose.connect(uri, opts).then((mongoose) => {
+      console.log('🚀 MongoDB Connected');
+      return mongoose;
+    });
+  }
 
   try {
-    console.log('⏳ Connecting to MongoDB...');
-    await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 30000,
-    });
-    console.log('🚀 MongoDB Connected');
-  } catch (error) {
-    console.error(`❌ MongoDB Error: ${error.message}`);
-    throw error; 
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null;
+    console.error(`❌ MongoDB Error: ${e.message}`);
+    throw e;
   }
+
+  return cached.conn;
 };
 
 export default connectDB;

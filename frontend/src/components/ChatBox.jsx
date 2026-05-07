@@ -29,23 +29,34 @@ const ChatBox = () => {
   }, [isOpen]);
 
   const fetchAllStudents = async () => {
+    if (allStudents.length > 0) return; // Only fetch once
     try {
-      const data = await api.get('/auth/users');
-      setAllStudents(data.filter(u => u.role === 'Student'));
+      // Fetch a larger set for the chat search list
+      const data = await api.get('/auth/users?limit=100'); 
+      setAllStudents(data.users.filter(u => u.role === 'Student'));
     } catch (err) {
       console.error('Fetch All Students Error:', err);
     }
   };
 
+
   useEffect(() => {
-    if (selectedUser) {
+    let interval;
+    if (selectedUser && isOpen) {
       fetchConversation(selectedUser._id);
-      const interval = setInterval(() => {
-        fetchConversation(selectedUser._id);
-      }, 5000); // Poll every 5 seconds for new messages
-      return () => clearInterval(interval);
+      
+      interval = setInterval(() => {
+        // Only poll if the tab is visible to save battery and network
+        if (document.visibilityState === 'visible') {
+          fetchConversation(selectedUser._id);
+        }
+      }, 8000); // Increased interval to 8 seconds
     }
-  }, [selectedUser]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [selectedUser, isOpen]);
+
 
   useEffect(() => {
     if (scrollRef.current) {

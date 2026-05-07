@@ -234,8 +234,26 @@ export const getUserProfile = async (req, res) => {
 // @access  Private/Admin
 export const getUsers = async (req, res) => {
   try {
-    const users = await User.find({ role: 'Student' }).select('-password').populate('room_id', 'room_number');
-    res.json(users);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const [users, total] = await Promise.all([
+      User.find({ role: 'Student' })
+        .select('-password')
+        .populate('room_id', 'room_number')
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      User.countDocuments({ role: 'Student' })
+    ]);
+
+    res.json({
+      users,
+      page,
+      pages: Math.ceil(total / limit),
+      total
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

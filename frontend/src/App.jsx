@@ -3,19 +3,19 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from './store/authSlice';
 import { api } from './utils/api';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Rooms from './pages/Rooms';
-import Students from './pages/Students';
-import Fines from './pages/Fines';
-import GatePass from './pages/GatePass';
-import Canteen from './pages/Canteen';
-import Notices from './pages/Notices';
-import Bookings from './pages/Bookings';
-import ChangePassword from './pages/ChangePassword';
-import Fees from './pages/Fees';
-import AdminPayments from './pages/AdminPayments';
+const Login = React.lazy(() => import('./pages/Login'));
+const Register = React.lazy(() => import('./pages/Register'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Rooms = React.lazy(() => import('./pages/Rooms'));
+const Students = React.lazy(() => import('./pages/Students'));
+const Fines = React.lazy(() => import('./pages/Fines'));
+const GatePass = React.lazy(() => import('./pages/GatePass'));
+const Canteen = React.lazy(() => import('./pages/Canteen'));
+const Notices = React.lazy(() => import('./pages/Notices'));
+const ChangePassword = React.lazy(() => import('./pages/ChangePassword'));
+const Fees = React.lazy(() => import('./pages/Fees'));
+const AdminPayments = React.lazy(() => import('./pages/AdminPayments'));
+
 import ProtectedRoute from './components/ProtectedRoute';
 import ChatBox from './components/ChatBox';
 
@@ -27,11 +27,11 @@ function App() {
     // Check if session is still valid on app load/refresh
     const checkSession = async () => {
       try {
-        // Try to fetch stats - if it 401s, our api utility will handle the logout
-        await api.get('/stats');
+        // Use a lighter profile endpoint instead of full stats
+        await api.get('/auth/profile');
       } catch (err) {
         // If not logged in, just ensure Redux is clean
-        if (err.status === 401) {
+        if (err.status === 401 || err.status === 403) {
           dispatch(logout());
         }
       }
@@ -41,6 +41,7 @@ function App() {
       checkSession();
     }
   }, [dispatch]);
+
 
   useEffect(() => {
     // Advanced Visitor Tracking
@@ -105,24 +106,35 @@ function App() {
 
   return (
     <div className="App">
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/rooms" element={<ProtectedRoute><Rooms /></ProtectedRoute>} />
-        <Route path="/students" element={<ProtectedRoute><Students /></ProtectedRoute>} />
-        <Route path="/fines" element={<ProtectedRoute><Fines /></ProtectedRoute>} />
-        <Route path="/gatepass" element={<ProtectedRoute><GatePass /></ProtectedRoute>} />
-        <Route path="/canteen" element={<ProtectedRoute><Canteen /></ProtectedRoute>} />
-        <Route path="/notices" element={<ProtectedRoute><Notices /></ProtectedRoute>} />
-        <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
-        <Route path="/fees" element={<ProtectedRoute><Fees /></ProtectedRoute>} />
-        <Route path="/admin-payments" element={<ProtectedRoute><AdminPayments /></ProtectedRoute>} />
-      </Routes>
+      <React.Suspense fallback={
+        <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg)' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div className="loading-spinner" style={{ width: '40px', height: '40px', border: '3px solid var(--color-primary-light)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 1s linear infinite' }} />
+            <p style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>Loading UHostel...</p>
+          </div>
+          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+        </div>
+      }>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/rooms" element={<ProtectedRoute><Rooms /></ProtectedRoute>} />
+          <Route path="/students" element={<ProtectedRoute><Students /></ProtectedRoute>} />
+          <Route path="/fines" element={<ProtectedRoute><Fines /></ProtectedRoute>} />
+          <Route path="/gatepass" element={<ProtectedRoute><GatePass /></ProtectedRoute>} />
+          <Route path="/canteen" element={<ProtectedRoute><Canteen /></ProtectedRoute>} />
+          <Route path="/notices" element={<ProtectedRoute><Notices /></ProtectedRoute>} />
+          <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+          <Route path="/fees" element={<ProtectedRoute><Fees /></ProtectedRoute>} />
+          <Route path="/admin-payments" element={<ProtectedRoute><AdminPayments /></ProtectedRoute>} />
+        </Routes>
+      </React.Suspense>
       {userInfo && <ChatBox />}
     </div>
   );
+
 }
 
 export default App;

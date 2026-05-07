@@ -3,13 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { User as UserIcon, Mail, Shield, CheckCircle, XCircle, Trash2, Download } from 'lucide-react';
+import { User as UserIcon, Mail, Shield, CheckCircle, XCircle, Trash2, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../utils/api';
 
 const Students = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalStudents, setTotalStudents] = useState(0);
+
   const navigate = useNavigate();
   const { userInfo } = useSelector(state => state.auth);
 
@@ -35,12 +39,21 @@ const Students = () => {
 
   useEffect(() => {
     fetchStudents();
-  }, []);
+  }, [page]);
 
   const fetchStudents = async () => {
+    setLoading(true);
     try {
-      const data = await api.get('/auth/users');
-      setStudents(data);
+      const data = await api.get(`/auth/users?page=${page}&limit=12`);
+      // Handle both old array format and new paginated object format
+      if (data.users) {
+        setStudents(data.users);
+        setTotalPages(data.pages);
+        setTotalStudents(data.total);
+      } else {
+        setStudents(data);
+        setTotalPages(1);
+      }
     } catch (err) {
       setError(err.message || 'Failed to fetch students');
     } finally {
@@ -74,14 +87,14 @@ const Students = () => {
         <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h1 style={{ fontSize: '1.8rem', color: 'var(--color-accent)', fontWeight: 700 }}>Student Management</h1>
-            <p style={{ color: 'var(--color-text-muted)', marginTop: '5px' }}>View and manage hostel residents</p>
+            <p style={{ color: 'var(--color-text-muted)', marginTop: '5px' }}>{totalStudents} Residents Registered</p>
           </div>
           <button 
             onClick={exportToCSV}
             className="btn-secondary" 
             style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}
           >
-            <Download size={18} /> Export CSV
+            <Download size={18} /> Export Page CSV
           </button>
         </header>
 
@@ -92,69 +105,95 @@ const Students = () => {
         )}
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '50px', color: 'var(--color-text-muted)' }}>Loading students...</div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-            <AnimatePresence>
-              {students.map((student) => (
-                <motion.div
-                  key={student._id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="minimal-card"
-                  style={{ padding: '25px', position: 'relative' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
-                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: 'var(--color-accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent)' }}>
-                      <UserIcon size={24} />
-                    </div>
-                    <div>
-                      <h3 style={{ fontWeight: 600, color: 'var(--color-text)' }}>{student.name}</h3>
-                      <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <Mail size={12} /> {student.email}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.9rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>Room:</span>
-                      <span style={{ fontWeight: 500 }}>{student.room_id?.room_number || 'Not Assigned'}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>Status:</span>
-                      <span style={{ 
-                        display: 'flex', alignItems: 'center', gap: '5px',
-                        color: student.isVerified ? '#059669' : '#DC2626',
-                        fontWeight: 600
-                      }}>
-                        {student.isVerified ? <CheckCircle size={14} /> : <XCircle size={14} />}
-                        {student.isVerified ? 'Verified' : 'Unverified'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--color-border)', display: 'flex', gap: '10px' }}>
-                    <button 
-                      onClick={() => handleToggleVerification(student)}
-                      className="btn-secondary" 
-                      style={{ flex: 1, fontSize: '0.8rem', padding: '8px' }}
-                    >
-                      {student.isVerified ? 'Revoke Verify' : 'Verify Student'}
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteStudent(student._id)}
-                      style={{ padding: '8px', borderRadius: '8px', border: '1px solid #FCA5A5', background: 'transparent', color: '#DC2626', cursor: 'pointer' }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+          <div style={{ textAlign: 'center', padding: '50px', color: 'var(--color-text-muted)' }}>
+             <div style={{ width: '40px', height: '40px', border: '3px solid var(--color-primary-light)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 1s linear infinite' }} />
+             <p>Fetching students...</p>
           </div>
+        ) : (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+              <AnimatePresence>
+                {students.map((student) => (
+                  <motion.div
+                    key={student._id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="minimal-card"
+                    style={{ padding: '25px', position: 'relative' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
+                      <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: 'var(--color-accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent)' }}>
+                        <UserIcon size={24} />
+                      </div>
+                      <div style={{ overflow: 'hidden' }}>
+                        <h3 style={{ fontWeight: 600, color: 'var(--color-text)', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{student.name}</h3>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                          <Mail size={12} /> {student.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.9rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--color-text-muted)' }}>Room:</span>
+                        <span style={{ fontWeight: 500 }}>{student.room_id?.room_number || 'Not Assigned'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--color-text-muted)' }}>Status:</span>
+                        <span style={{ 
+                          display: 'flex', alignItems: 'center', gap: '5px',
+                          color: student.isVerified ? '#059669' : '#DC2626',
+                          fontWeight: 600
+                        }}>
+                          {student.isVerified ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                          {student.isVerified ? 'Verified' : 'Unverified'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--color-border)', display: 'flex', gap: '10px' }}>
+                      <button 
+                        onClick={() => handleToggleVerification(student)}
+                        className="btn-secondary" 
+                        style={{ flex: 1, fontSize: '0.8rem', padding: '8px' }}
+                      >
+                        {student.isVerified ? 'Revoke Verify' : 'Verify Student'}
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteStudent(student._id)}
+                        style={{ padding: '8px', borderRadius: '8px', border: '1px solid #FCA5A5', background: 'transparent', color: '#DC2626', cursor: 'pointer' }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', marginTop: '40px' }}>
+                <button 
+                  disabled={page === 1}
+                  onClick={() => setPage(p => p - 1)}
+                  style={{ padding: '10px', borderRadius: '12px', border: '1px solid var(--color-border)', background: 'white', cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <span style={{ fontWeight: 700, color: 'var(--color-text)' }}>Page {page} of {totalPages}</span>
+                <button 
+                  disabled={page === totalPages}
+                  onClick={() => setPage(p => p + 1)}
+                  style={{ padding: '10px', borderRadius: '12px', border: '1px solid var(--color-border)', background: 'white', cursor: page === totalPages ? 'default' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            )}
+          </>
         )}
         
         {students.length === 0 && !loading && (
@@ -163,6 +202,7 @@ const Students = () => {
           </div>
         )}
       </main>
+      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

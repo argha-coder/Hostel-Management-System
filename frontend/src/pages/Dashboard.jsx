@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import { useNavigate } from 'react-router-dom';
 import { Bed, Home, CreditCard, Users, FileText, AlertTriangle, ShieldCheck, ArrowUpRight, Activity } from 'lucide-react';
 import { api } from '../utils/api';
 import GlowOrb from '../components/GlowOrb';
+import DashboardSkeleton from '../components/DashboardSkeleton';
 
-const AnimatedCounter = ({ from, to, duration = 2 }) => {
+const AnimatedCounter = React.memo(({ from, to, duration = 2 }) => {
   const [count, setCount] = useState(from);
 
   useEffect(() => {
@@ -28,9 +29,9 @@ const AnimatedCounter = ({ from, to, duration = 2 }) => {
   }, [from, to, duration]);
 
   return <span>{count}</span>;
-}
+});
 
-const DashboardRowItem = ({ title, value, icon, prefix = '', onClick, color = 'var(--color-primary)', bgColor = 'var(--color-primary-light)' }) => {
+const DashboardRowItem = React.memo(({ title, value, icon, prefix = '', onClick, color = 'var(--color-primary)', bgColor = 'var(--color-primary-light)' }) => {
   return (
     <motion.div 
       whileHover={{ y: -5 }}
@@ -73,44 +74,36 @@ const DashboardRowItem = ({ title, value, icon, prefix = '', onClick, color = 'v
       </div>
     </motion.div>
   );
-};
+});
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const data = await api.get('/stats');
-        setStats(data);
-      } catch (err) {
-        console.error("Failed to load stats", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
+  const fetchStats = useCallback(async () => {
+    try {
+      const data = await api.get('/stats');
+      setStats(data);
+    } catch (err) {
+      console.error("Failed to load stats", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  if (loading || !stats) {
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  if (loading) {
+    return <DashboardSkeleton />;
+  }
+
+  if (!stats) {
     return (
-      <div style={{ display: 'flex', background: 'var(--color-bg)', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
-        <Sidebar />
-        <GlowOrb color="rgba(79, 70, 229, 0.1)" size="400px" top="20%" left="40%" />
-        <main style={{ marginLeft: '300px', padding: '40px', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-          <div style={{ textAlign: 'center' }}>
-             <motion.div 
-               animate={{ rotate: 360 }}
-               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-               style={{ width: '40px', height: '40px', border: '3px solid var(--color-primary-light)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', margin: '0 auto 16px' }}
-             />
-             <p style={{ color: 'var(--color-text-muted)', fontWeight: 500 }}>
-               {loading ? 'Preparing your dashboard...' : 'Unable to connect to server.'}
-             </p>
-          </div>
-        </main>
+      <div style={{ display: 'flex', background: 'var(--color-bg)', minHeight: '100vh', alignItems: 'center', justifyContent: 'center' }}>
+        <p>Unable to connect to server. Please try refreshing.</p>
       </div>
     );
   }

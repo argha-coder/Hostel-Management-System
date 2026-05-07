@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { api } from '../utils/api';
-import { User, X, Check, Clock, CheckCircle, Plus, Info, Trash2, ArrowRight } from 'lucide-react';
+import { User, X, Check, Clock, CheckCircle, Plus, Info, Trash2, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import GlowOrb from '../components/GlowOrb';
 
 const Rooms = () => {
@@ -13,6 +13,11 @@ const Rooms = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRooms, setTotalRooms] = useState(0);
+
   // Add Room form state
   const [showAddForm, setShowAddForm] = useState(false);
   const [newRoomNumber, setNewRoomNumber] = useState('');
@@ -37,6 +42,9 @@ const Rooms = () => {
 
   useEffect(() => {
     fetchRooms();
+  }, [page]);
+
+  useEffect(() => {
     if (isAdmin) {
       fetchStudents();
     } else {
@@ -73,9 +81,17 @@ const Rooms = () => {
   }, [selectedRoom, students]);
 
   const fetchRooms = async () => {
+    setLoading(true);
     try {
-      const data = await api.get('/rooms');
-      setRooms(data);
+      const data = await api.get(`/rooms?page=${page}&limit=12`);
+      if (data.rooms) {
+        setRooms(data.rooms);
+        setTotalPages(data.pages);
+        setTotalRooms(data.total);
+      } else {
+        setRooms(data);
+        setTotalPages(1);
+      }
     } catch (err) {
       setError('Failed to fetch rooms');
     } finally {
@@ -85,10 +101,9 @@ const Rooms = () => {
 
   const fetchStudents = async () => {
     try {
-      const data = await api.get('/auth/users');
-      // Fix: Get students who are either unassigned or assigned to the CURRENT selected room
-      // This allows moving students or seeing residents in the dropdown if needed
-      setStudents(data.filter(u => u.role === 'Student'));
+      // Use the optimized chat limit for admin room view
+      const data = await api.get('/auth/users?limit=100');
+      setStudents(data.users.filter(u => u.role === 'Student'));
     } catch (err) {
       console.error('Failed to fetch students', err);
     }
@@ -110,8 +125,8 @@ const Rooms = () => {
       alert('Student assigned successfully');
       
       // Update selected room data to reflect new occupancy
-      const updatedRoom = await api.get('/rooms');
-      const newSelected = updatedRoom.find(r => r._id === selectedRoom._id);
+      const updatedRoomsData = await api.get(`/rooms?page=${page}&limit=12`);
+      const newSelected = updatedRoomsData.rooms.find(r => r._id === selectedRoom._id);
       setSelectedRoom(newSelected);
     } catch (err) {
       alert(err.message || 'Failed to assign student');
@@ -129,8 +144,8 @@ const Rooms = () => {
       alert('Student unassigned successfully');
 
       // Update selected room data
-      const updatedRoom = await api.get('/rooms');
-      const newSelected = updatedRoom.find(r => r._id === selectedRoom._id);
+      const updatedRoomsData = await api.get(`/rooms?page=${page}&limit=12`);
+      const newSelected = updatedRoomsData.rooms.find(r => r._id === selectedRoom._id);
       setSelectedRoom(newSelected);
     } catch (err) {
       alert(err.message || 'Failed to unassign student');
@@ -166,7 +181,7 @@ const Rooms = () => {
         status: 'Available'
       });
       
-      setRooms([...rooms, data]);
+      fetchRooms(); // Refresh to show new room
       setShowAddForm(false);
       setNewRoomNumber('');
     } catch (err) {
@@ -228,7 +243,7 @@ const Rooms = () => {
         <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h1 style={{ fontSize: '1.8rem', color: 'var(--color-accent)', fontWeight: 700 }}>Room Management</h1>
-            <p style={{ color: 'var(--color-text-muted)', marginTop: '5px' }}>Hostel inventory and room tracking</p>
+            <p style={{ color: 'var(--color-text-muted)', marginTop: '5px' }}>{totalRooms} Total Rooms Tracked</p>
           </div>
           {isAdmin && (
             <button className="btn-primary" onClick={() => setShowAddForm(true)}>+ Register Room</button>
@@ -236,51 +251,80 @@ const Rooms = () => {
         </header>
 
         {error && <p style={{ color: 'red' }}>{error}</p>}
-        {loading && <p>Loading inventory...</p>}
+        
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <div style={{ width: '40px', height: '40px', border: '3px solid var(--color-primary-light)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 1s linear infinite' }} />
+            <p style={{ color: 'var(--color-text-muted)' }}>Loading inventory...</p>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {rooms.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 1fr) 1fr 1fr auto', padding: '0 20px', color: 'var(--color-text-muted)', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+                  <span>Room Number</span>
+                  <span>Capacity</span>
+                  <span>Status</span>
+                  <span></span>
+                </div>
+              )}
+              
+              {rooms.map(room => {
+                const statusStyle = getStatusColorStyle(room.status);
+                return (
+                  <motion.div
+                    layoutId={`room-container-${room._id}`}
+                    key={room._id}
+                    onClick={() => setSelectedRoom(room)}
+                    className="minimal-card"
+                    style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'minmax(120px, 1fr) 1fr 1fr auto', 
+                      padding: '20px', 
+                      alignItems: 'center',
+                      cursor: 'pointer'
+                    }}
+                    whileHover={{ y: -2, boxShadow: 'var(--shadow-md)' }}
+                  >
+                    <motion.span layoutId={`title-${room._id}`} style={{ fontWeight: 600, color: 'var(--color-text)' }}>Room {room.room_number}</motion.span>
+                    <span style={{ color: 'var(--color-text-muted)' }}>{room.occupied} / {room.capacity} Students</span>
+                    <div>
+                      <span style={{ color: statusStyle.color, backgroundColor: statusStyle.background, padding: '4px 10px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 500 }}>{room.status}</span>
+                    </div>
+                    <span style={{ color: '#3B82F6', fontSize: '0.9rem', fontWeight: 500 }}>View Details</span>
+                  </motion.div>
+                )
+              })}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', marginTop: '40px' }}>
+                <button 
+                  disabled={page === 1}
+                  onClick={() => setPage(p => p - 1)}
+                  style={{ padding: '10px', borderRadius: '12px', border: '1px solid var(--color-border)', background: 'white', cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <span style={{ fontWeight: 700, color: 'var(--color-text)' }}>Page {page} of {totalPages}</span>
+                <button 
+                  disabled={page === totalPages}
+                  onClick={() => setPage(p => p + 1)}
+                  style={{ padding: '10px', borderRadius: '12px', border: '1px solid var(--color-border)', background: 'white', cursor: page === totalPages ? 'default' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            )}
+          </>
+        )}
 
         {!loading && rooms.length === 0 && (
           <div className="minimal-card" style={{ padding: '40px', textAlign: 'center' }}>
             <p style={{ color: 'var(--color-text-muted)' }}>No rooms found. Add some rooms to get started.</p>
           </div>
         )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          {rooms.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 1fr) 1fr 1fr auto', padding: '0 20px', color: 'var(--color-text-muted)', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
-              <span>Room Number</span>
-              <span>Capacity</span>
-              <span>Status</span>
-              <span></span>
-            </div>
-          )}
-          
-          {rooms.map(room => {
-            const statusStyle = getStatusColorStyle(room.status);
-            return (
-              <motion.div
-                layoutId={`room-container-${room._id}`}
-                key={room._id}
-                onClick={() => setSelectedRoom(room)}
-                className="minimal-card"
-                style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'minmax(120px, 1fr) 1fr 1fr auto', 
-                  padding: '20px', 
-                  alignItems: 'center',
-                  cursor: 'pointer'
-                }}
-                whileHover={{ y: -2, boxShadow: 'var(--shadow-md)' }}
-              >
-                <motion.span layoutId={`title-${room._id}`} style={{ fontWeight: 600, color: 'var(--color-text)' }}>Room {room.room_number}</motion.span>
-                <span style={{ color: 'var(--color-text-muted)' }}>{room.occupied} / {room.capacity} Students</span>
-                <div>
-                  <span style={{ color: statusStyle.color, backgroundColor: statusStyle.background, padding: '4px 10px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 500 }}>{room.status}</span>
-                </div>
-                <span style={{ color: '#3B82F6', fontSize: '0.9rem', fontWeight: 500 }}>View Details</span>
-              </motion.div>
-            )
-          })}
-        </div>
 
         {/* Expanded View Modal using Layout Morph */}
         <AnimatePresence>
@@ -353,7 +397,7 @@ const Rooms = () => {
                                   <option key={s._id} value={s._id}>
                                     {s.name} ({s.room_id ? `Currently: Room ${s.room_id.room_number || 'Other'}` : 'Unassigned'})
                                   </option>
-                              ))}
+                                ))}
                             </select>
                             <button type="submit" className="btn-primary" style={{ padding: '8px 15px' }}>Assign</button>
                           </form>
@@ -471,6 +515,7 @@ const Rooms = () => {
           )}
         </AnimatePresence>
       </main>
+      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };
