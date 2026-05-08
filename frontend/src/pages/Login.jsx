@@ -174,7 +174,6 @@ const Login = () => {
                           <input 
                             type="email" 
                             className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all font-medium"
-                            placeholder="name@uhostel.com"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             required
@@ -191,7 +190,6 @@ const Login = () => {
                           <input 
                             type="password" 
                             className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all font-medium"
-                            placeholder="••••••••"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                             required
