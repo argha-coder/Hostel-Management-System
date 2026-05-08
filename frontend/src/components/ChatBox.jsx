@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Send, User, ChevronLeft } from 'lucide-react';
+import { MessageSquare, X, Send, User, ChevronLeft, Sparkles, SendHorizontal } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { api } from '../utils/api';
+import { cn } from '../utils/cn';
 
 const ChatBox = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,7 +13,6 @@ const ChatBox = () => {
   const [threads, setThreads] = useState([]);
   const [allStudents, setAllStudents] = useState([]);
   const [viewMode, setViewMode] = useState('recent'); // 'recent' or 'all'
-  const [loading, setLoading] = useState(false);
   const { userInfo } = useSelector(state => state.auth);
   const isAdmin = userInfo?.role === 'Admin';
   const scrollRef = useRef();
@@ -29,9 +29,8 @@ const ChatBox = () => {
   }, [isOpen]);
 
   const fetchAllStudents = async () => {
-    if (allStudents.length > 0) return; // Only fetch once
+    if (allStudents.length > 0) return;
     try {
-      // Fetch a larger set for the chat search list
       const data = await api.get('/auth/users?limit=100'); 
       setAllStudents(data.users.filter(u => u.role === 'Student'));
     } catch (err) {
@@ -39,24 +38,18 @@ const ChatBox = () => {
     }
   };
 
-
   useEffect(() => {
     let interval;
     if (selectedUser && isOpen) {
       fetchConversation(selectedUser._id);
-      
       interval = setInterval(() => {
-        // Only poll if the tab is visible to save battery and network
         if (document.visibilityState === 'visible') {
           fetchConversation(selectedUser._id);
         }
-      }, 8000); // Increased interval to 8 seconds
+      }, 8000);
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => interval && clearInterval(interval);
   }, [selectedUser, isOpen]);
-
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -67,9 +60,7 @@ const ChatBox = () => {
   const fetchAdmins = async () => {
     try {
       const data = await api.get('/chat/admins');
-      if (data.length > 0) {
-        setSelectedUser(data[0]); // Default to first warden for students
-      }
+      if (data.length > 0) setSelectedUser(data[0]);
     } catch (err) {
       console.error('Fetch Admins Error:', err);
     }
@@ -96,7 +87,6 @@ const ChatBox = () => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!content.trim() || !selectedUser) return;
-
     try {
       const data = await api.post('/chat/send', {
         receiverId: selectedUser._id,
@@ -106,35 +96,24 @@ const ChatBox = () => {
       setContent('');
     } catch (err) {
       console.error('Send Message Error:', err);
-      alert(err.message || 'Failed to send message');
     }
   };
 
   if (!userInfo) return null;
 
   return (
-    <div style={{ position: 'fixed', bottom: '30px', right: '30px', zIndex: 1000 }}>
+    <div className="fixed bottom-8 right-8 z-[100] font-sans">
       {/* Chat Icon Bubble */}
       <motion.button
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        style={{
-          width: '60px',
-          height: '60px',
-          borderRadius: '50%',
-          backgroundColor: 'var(--color-accent)',
-          border: 'none',
-          color: 'white',
-          boxShadow: '0 10px 25px rgba(79, 70, 229, 0.4)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '1.5rem'
-        }}
+        className="w-16 h-16 rounded-full bg-indigo-600 text-white shadow-2xl shadow-indigo-200 flex items-center justify-center relative overflow-hidden group"
       >
-        {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
+        <div className="absolute inset-0 bg-gradient-to-tr from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="relative z-10">
+           {isOpen ? <X size={28} /> : <MessageSquare size={28} />}
+        </div>
       </motion.button>
 
       {/* Chat Window */}
@@ -144,115 +123,80 @@ const ChatBox = () => {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            style={{
-              position: 'absolute',
-              bottom: '80px',
-              right: '0',
-              width: '350px',
-              height: '500px',
-              backgroundColor: 'white',
-              borderRadius: '15px',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-              border: '1px solid var(--color-border)'
-            }}
+            className="absolute bottom-20 right-0 w-[380px] h-[600px] bg-white rounded-[2.5rem] shadow-2xl shadow-indigo-100 overflow-hidden flex flex-col border border-slate-100"
           >
             {/* Header */}
-            <div style={{
-              padding: '15px 20px',
-              backgroundColor: 'var(--color-accent)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
-              {isAdmin && selectedUser && (
-                <button
-                  onClick={() => {
-                    setSelectedUser(null);
-                    setViewMode('recent');
-                  }}
-                  style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '5px' }}
-                >
-                  <ChevronLeft size={20} />
-                </button>
-              )}
-              <div style={{ flex: 1 }}>
-                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>
-                  {selectedUser ? selectedUser.name : 'Select Student'}
-                </h4>
-                <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.8 }}>
-                  {selectedUser ? (isAdmin ? 'Student' : 'Warden') : 'Recent Chats'}
-                </p>
-              </div>
+            <div className="p-6 bg-indigo-600 text-white flex items-center gap-4 relative overflow-hidden">
+               <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-purple-700 opacity-90" />
+               <div className="relative z-10 flex items-center gap-3 w-full">
+                  {isAdmin && selectedUser && (
+                    <button onClick={() => setSelectedUser(null)} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors">
+                      <ChevronLeft size={20} />
+                    </button>
+                  )}
+                  <div className="flex-1">
+                    <h4 className="font-black text-lg tracking-tight">
+                      {selectedUser ? selectedUser.name : 'UHostel Chat'}
+                    </h4>
+                    <div className="flex items-center gap-1.5 opacity-80">
+                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                       <span className="text-[10px] font-black uppercase tracking-widest">
+                         {selectedUser ? (isAdmin ? 'Resident' : 'Support Desk') : 'Select Thread'}
+                       </span>
+                    </div>
+                  </div>
+                  {!selectedUser && <Sparkles size={20} className="text-indigo-200" />}
+               </div>
             </div>
 
             {/* Content Area */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#f9f9f9', overflow: 'hidden' }}>
+            <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
               {isAdmin && !selectedUser ? (
                 /* Thread List for Admin */
-                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', backgroundColor: 'white' }}>
+                <div className="flex flex-col flex-1 overflow-hidden">
+                  <div className="flex bg-white border-b border-slate-100 p-2">
                     <button 
                       onClick={() => setViewMode('recent')}
-                      style={{ 
-                        flex: 1, padding: '10px', border: 'none', background: 'none', cursor: 'pointer',
-                        fontWeight: 600, fontSize: '0.85rem', color: viewMode === 'recent' ? 'var(--color-accent)' : 'var(--color-text-muted)',
-                        borderBottom: viewMode === 'recent' ? '2px solid var(--color-accent)' : 'none'
-                      }}
+                      className={cn(
+                        "flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all",
+                        viewMode === 'recent' ? "bg-indigo-50 text-indigo-600" : "text-slate-400 hover:text-slate-600"
+                      )}
                     >
                       Recent
                     </button>
                     <button 
                       onClick={() => setViewMode('all')}
-                      style={{ 
-                        flex: 1, padding: '10px', border: 'none', background: 'none', cursor: 'pointer',
-                        fontWeight: 600, fontSize: '0.85rem', color: viewMode === 'all' ? 'var(--color-accent)' : 'var(--color-text-muted)',
-                        borderBottom: viewMode === 'all' ? '2px solid var(--color-accent)' : 'none'
-                      }}
+                      className={cn(
+                        "flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all",
+                        viewMode === 'all' ? "bg-indigo-50 text-indigo-600" : "text-slate-400 hover:text-slate-600"
+                      )}
                     >
                       All Students
                     </button>
                   </div>
-                  <div style={{ overflowY: 'auto', flex: 1 }}>
+                  <div className="overflow-y-auto flex-1 p-4 space-y-2">
                     {(viewMode === 'recent' ? threads : allStudents).length === 0 ? (
-                      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
-                        {viewMode === 'recent' ? 'No recent chats.' : 'No students found.'}
+                      <div className="py-20 text-center">
+                        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-200">
+                           <MessageSquare size={32} />
+                        </div>
+                        <p className="text-sm font-bold text-slate-400">No conversations found.</p>
                       </div>
                     ) : (
                       (viewMode === 'recent' ? threads : allStudents).map(user => (
-                        <div
+                        <button
                           key={user._id}
                           onClick={() => setSelectedUser(user)}
-                          style={{
-                            padding: '12px 20px',
-                            borderBottom: '1px solid var(--color-border)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            backgroundColor: 'white'
-                          }}
+                          className="w-full p-4 bg-white rounded-2xl border border-slate-100 flex items-center gap-4 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-50 transition-all text-left"
                         >
-                          <div style={{
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '50%',
-                            backgroundColor: 'var(--color-accent-light)',
-                            color: 'var(--color-accent)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}>
-                            <User size={18} />
+                          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black">
+                            {user.name?.charAt(0)}
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ margin: 0, fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</p>
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-black text-slate-900 text-sm tracking-tight truncate">{user.name}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{user.email}</p>
                           </div>
-                        </div>
+                        </button>
                       ))
                     )}
                   </div>
@@ -260,40 +204,33 @@ const ChatBox = () => {
               ) : (
                 /* Chat Messages */
                 <>
-                  <div
-                    ref={scrollRef}
-                    style={{
-                      flex: 1,
-                      padding: '20px',
-                      overflowY: 'auto',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px'
-                    }}
-                  >
+                  <div ref={scrollRef} className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
                     {messages.length === 0 && (
-                      <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
-                        No messages in this conversation.
+                      <div className="py-20 text-center">
+                        <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center mx-auto mb-4 text-indigo-100">
+                           <Sparkles size={40} />
+                        </div>
+                        <p className="text-sm font-bold text-slate-400">Start a new conversation with {selectedUser?.name}</p>
                       </div>
                     )}
-                    {messages.map((msg, i) => {
+                    {messages.map((msg) => {
                       const isMe = msg.sender._id === userInfo._id;
                       return (
                         <div
                           key={msg._id}
-                          style={{
-                            alignSelf: isMe ? 'flex-end' : 'flex-start',
-                            maxWidth: '80%',
-                            padding: '10px 15px',
-                            borderRadius: isMe ? '15px 15px 0 15px' : '15px 15px 15px 0',
-                            backgroundColor: isMe ? 'var(--color-accent)' : 'white',
-                            color: isMe ? 'white' : 'var(--color-text)',
-                            boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
-                            fontSize: '0.9rem'
-                          }}
+                          className={cn(
+                            "max-w-[85%] p-4 rounded-3xl text-sm font-medium shadow-sm",
+                            isMe 
+                              ? "self-end bg-indigo-600 text-white rounded-tr-none shadow-indigo-100" 
+                              : "self-start bg-white text-slate-700 rounded-tl-none border border-slate-100"
+                          )}
+                          style={{ alignSelf: isMe ? 'flex-end' : 'flex-start' }}
                         >
                           {msg.content}
-                          <div style={{ fontSize: '0.65rem', opacity: 0.7, marginTop: '5px', textAlign: 'right' }}>
+                          <div className={cn(
+                            "text-[10px] font-bold mt-2",
+                            isMe ? "text-indigo-200" : "text-slate-300"
+                          )}>
                             {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
@@ -302,47 +239,25 @@ const ChatBox = () => {
                   </div>
 
                   {/* Input Box */}
-                  <form
-                    onSubmit={handleSendMessage}
-                    style={{
-                      padding: '15px',
-                      backgroundColor: 'white',
-                      borderTop: '1px solid var(--color-border)',
-                      display: 'flex',
-                      gap: '10px'
-                    }}
-                  >
+                  <form onSubmit={handleSendMessage} className="p-6 bg-white border-t border-slate-100 flex gap-3">
                     <input
                       type="text"
-                      placeholder="Type a message..."
+                      placeholder="Type your message..."
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
-                      style={{
-                        flex: 1,
-                        padding: '10px 15px',
-                        borderRadius: '25px',
-                        border: '1px solid var(--color-border)',
-                        outline: 'none',
-                        fontSize: '0.9rem'
-                      }}
+                      className="flex-1 px-5 py-3 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                     />
                     <button
                       type="submit"
                       disabled={!content.trim()}
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        backgroundColor: content.trim() ? 'var(--color-accent)' : '#ccc',
-                        border: 'none',
-                        color: 'white',
-                        cursor: content.trim() ? 'pointer' : 'default',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
+                      className={cn(
+                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-all",
+                        content.trim() 
+                          ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100 active:scale-90" 
+                          : "bg-slate-100 text-slate-300 cursor-not-allowed"
+                      )}
                     >
-                      <Send size={18} />
+                      <SendHorizontal size={20} />
                     </button>
                   </form>
                 </>

@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Sidebar from '../components/Sidebar';
 import { useSelector } from 'react-redux';
 import { api } from '../utils/api';
-import { Megaphone, Plus, Trash2, Calendar, User, AlertCircle, Clock } from 'lucide-react';
+import { 
+  Megaphone, Plus, Trash2, Calendar, User, AlertCircle, Clock, 
+  Send, Sparkles, X, ChevronRight, Bookmark, ArrowUpRight
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { cn } from '../utils/cn';
 
 const Notices = () => {
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   
-  // Add Notice Form State
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [priority, setPriority] = useState('Normal');
@@ -39,200 +43,214 @@ const Notices = () => {
     if (!title || !content) return;
     
     try {
-      const data = await api.post('/notices', {
-        title,
-        content,
-        priority
-      });
+      const data = await api.post('/notices', { title, content, priority });
       setNotices([data, ...notices]);
       setShowAddForm(false);
       setTitle('');
       setContent('');
       setPriority('Normal');
-      alert('Notice posted successfully!');
     } catch (err) {
       alert(err.message || 'Failed to post notice');
     }
   };
 
-  const handleDeleteNotice = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this notice?')) return;
-    try {
-      await api.delete(`/notices/${id}`);
-      setNotices(notices.filter(n => n._id !== id));
-    } catch (err) {
-      alert(err.message || 'Delete failed');
-    }
-  };
-
-  const getPriorityColor = (p) => {
-    switch(p) {
-      case 'Urgent': return '#DC2626';
-      case 'Normal': return '#2563EB';
-      case 'Low': return '#6B7280';
-      default: return '#4B5563';
-    }
+  const priorityConfig = {
+    'Urgent': { color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', dot: 'bg-rose-500' },
+    'Normal': { color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', dot: 'bg-indigo-500' },
+    'Low': { color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-100', dot: 'bg-slate-500' },
   };
 
   return (
-    <div style={{ display: 'flex', background: 'var(--color-bg)', minHeight: '100vh' }}>
-      <Sidebar />
-      <main style={{ marginLeft: '300px', padding: '40px', flex: 1 }}>
-        <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ fontSize: '1.8rem', color: 'var(--color-accent)', fontWeight: 700 }}>Notice Board</h1>
-            <p style={{ color: 'var(--color-text-muted)', marginTop: '5px' }}>
-              Important announcements and updates for all residents
-            </p>
-          </div>
-          {isAdmin && (
-            <button 
-              onClick={() => setShowAddForm(true)}
-              className="btn-primary" 
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              <Plus size={18} /> Post New Notice
-            </button>
-          )}
-        </header>
-
-        {showAddForm && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            className="minimal-card" 
-            style={{ padding: '30px', marginBottom: '40px', border: '1px solid var(--color-accent)' }}
-          >
-            <h3 style={{ marginBottom: '20px', fontWeight: 600 }}>Post a New Announcement</h3>
-            <form onSubmit={handlePostNotice} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>Notice Title</label>
-                  <input 
-                    type="text"
-                    className="input-outline" 
-                    value={title} 
-                    onChange={(e) => setTitle(e.target.value)} 
-                    placeholder="e.g. Hostel Maintenance Update"
-                    required
-                  />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>Priority Level</label>
-                  <select 
-                    className="input-outline"
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value)}
-                  >
-                    <option value="Normal">Normal</option>
-                    <option value="Urgent">Urgent</option>
-                    <option value="Low">Low</option>
-                  </select>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>Announcement Details</label>
-                <textarea 
-                  className="input-outline" 
-                  style={{ minHeight: '120px', padding: '12px' }}
-                  value={content} 
-                  onChange={(e) => setContent(e.target.value)} 
-                  placeholder="Type the announcement here for all students to see..." 
-                  required
-                />
-              </div>
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setShowAddForm(false)} className="btn-secondary">Cancel</button>
-                <button type="submit" className="btn-primary">Post Announcement</button>
-              </div>
-            </form>
-          </motion.div>
+    <div className="space-y-8">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Notice Board</h1>
+          <p className="text-slate-500 font-medium mt-1">Official announcements and community updates</p>
+        </div>
+        {isAdmin && (
+          <Button variant="gradient" className="gap-2 shadow-indigo-100" onClick={() => setShowAddForm(true)}>
+            <Plus size={18} /> Post Notice
+          </Button>
         )}
+      </header>
 
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '50px', color: 'var(--color-text-muted)' }}>Loading announcements...</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-            <AnimatePresence>
-              {notices.map((notice) => (
-                <motion.div
-                  key={notice._id}
-                  layout
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="minimal-card"
-                  style={{ 
-                    padding: '30px', 
-                    borderLeft: `5px solid ${getPriorityColor(notice.priority)}`,
-                    position: 'relative'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
-                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                      <div style={{ 
-                        padding: '10px', borderRadius: '10px', 
-                        background: getPriorityColor(notice.priority) + '15',
-                        color: getPriorityColor(notice.priority)
-                      }}>
-                        <Megaphone size={20} />
-                      </div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>{notice.title}</h3>
-                          <span style={{ 
-                            padding: '3px 10px', borderRadius: '20px', fontSize: '0.65rem', fontWeight: 700,
-                            background: getPriorityColor(notice.priority) + '20',
-                            color: getPriorityColor(notice.priority),
-                            textTransform: 'uppercase'
-                          }}>
-                            {notice.priority}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '15px', marginTop: '5px' }}>
-                           <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                             <User size={14} /> {notice.author?.name} (Warden)
-                           </span>
-                           <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                             <Clock size={14} /> {new Date(notice.createdAt).toLocaleString()}
-                           </span>
-                        </div>
-                      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+         {/* Featured / Stats Sidebar */}
+         <div className="lg:col-span-4 space-y-6">
+            <Card className="bg-indigo-600 text-white border-none shadow-lg shadow-indigo-200 overflow-hidden relative group">
+               <CardContent className="p-8 relative z-10">
+                  <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl w-fit mb-6">
+                     <Megaphone size={24} />
+                  </div>
+                  <h3 className="text-2xl font-black tracking-tight leading-tight">Stay Updated with UHostel Premium</h3>
+                  <p className="text-indigo-100 font-medium mt-2 text-sm">Real-time alerts for maintenance, events, and academic updates.</p>
+               </CardContent>
+               <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-500" />
+            </Card>
+
+            <Card className="border-none shadow-slate-200/50">
+               <CardHeader>
+                  <CardTitle className="text-lg font-black tracking-tight">Active Categories</CardTitle>
+               </CardHeader>
+               <CardContent className="space-y-3">
+                  {Object.entries(priorityConfig).map(([name, config]) => (
+                    <div key={name} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                       <div className="flex items-center gap-3">
+                          <div className={cn("w-2 h-2 rounded-full", config.dot)} />
+                          <span className="text-sm font-bold text-slate-700">{name} priority</span>
+                       </div>
+                       <span className="text-xs font-black text-slate-400">
+                         {notices.filter(n => n.priority === name).length}
+                       </span>
                     </div>
-                    {isAdmin && (
-                      <button 
-                        onClick={() => handleDeleteNotice(notice._id)}
-                        className="btn-secondary" 
-                        style={{ color: '#DC2626', borderColor: '#FCA5A5', padding: '8px' }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div style={{ 
-                    padding: '20px', 
-                    background: 'var(--color-bg)', 
-                    borderRadius: '10px', 
-                    fontSize: '1rem', 
-                    lineHeight: '1.6',
-                    color: 'var(--color-text)',
-                    whiteSpace: 'pre-wrap'
-                  }}>
-                    {notice.content}
-                  </div>
-                </motion.div>
-              ))}
+                  ))}
+               </CardContent>
+            </Card>
+         </div>
+
+         {/* Notices Feed */}
+         <div className="lg:col-span-8 space-y-6">
+            <AnimatePresence mode="popLayout">
+               {loading ? (
+                 [...Array(3)].map(i => <div key={i} className="h-48 bg-slate-100 animate-pulse rounded-3xl" />)
+               ) : notices.length === 0 ? (
+                 <Card className="p-20 text-center border-dashed border-2 border-slate-200 shadow-none bg-transparent">
+                    <div className="w-20 h-20 bg-slate-100 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-slate-300">
+                       <AlertCircle size={40} />
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">No announcements</h3>
+                    <p className="text-slate-500 font-medium mt-2">The notice board is currently empty.</p>
+                 </Card>
+               ) : notices.map((notice) => {
+                 const config = priorityConfig[notice.priority] || priorityConfig.Normal;
+                 return (
+                   <motion.div 
+                    layout
+                    key={notice._id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                   >
+                     <Card className="border-none shadow-slate-200/50 overflow-hidden hover:shadow-indigo-100/30 transition-all group">
+                        <CardContent className="p-0">
+                           <div className="p-8">
+                              <div className="flex justify-between items-start mb-4">
+                                 <div className="flex items-center gap-3">
+                                    <span className={cn(
+                                      "px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase",
+                                      config.bg, config.color
+                                    )}>
+                                      {notice.priority}
+                                    </span>
+                                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
+                                       <Clock size={14} />
+                                       {new Date(notice.createdAt).toLocaleDateString()}
+                                    </div>
+                                 </div>
+                                 {isAdmin && (
+                                   <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="text-slate-400 hover:text-rose-500 rounded-xl"
+                                    onClick={() => api.delete(`/notices/${notice._id}`).then(() => fetchNotices())}
+                                   >
+                                      <Trash2 size={18} />
+                                   </Button>
+                                 )}
+                              </div>
+                              <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-tight group-hover:text-indigo-600 transition-colors">
+                                 {notice.title}
+                              </h3>
+                              <div className="mt-4 p-6 bg-slate-50 rounded-[24px] border border-slate-100 text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">
+                                 {notice.content}
+                              </div>
+                              <div className="mt-6 flex items-center justify-between">
+                                 <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-black">
+                                       {notice.author?.name?.charAt(0) || 'W'}
+                                    </div>
+                                    <div>
+                                       <p className="text-xs font-black text-slate-900 leading-none">{notice.author?.name || 'Admin'}</p>
+                                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hostel Warden</p>
+                                    </div>
+                                 </div>
+                                 <Button variant="ghost" size="sm" className="gap-2 font-bold text-indigo-600">
+                                    Read More <ChevronRight size={16} />
+                                 </Button>
+                              </div>
+                           </div>
+                        </CardContent>
+                     </Card>
+                   </motion.div>
+                 )
+               })}
             </AnimatePresence>
-            
-            {notices.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '100px', background: 'var(--color-surface)', borderRadius: '12px', border: '1px dashed var(--color-border)' }}>
-                <AlertCircle size={48} color="var(--color-text-muted)" style={{ marginBottom: '15px' }} />
-                <p style={{ color: 'var(--color-text-muted)' }}>No announcements posted yet.</p>
-              </div>
-            )}
+         </div>
+      </div>
+
+      {/* Add Notice Modal */}
+      <AnimatePresence>
+        {showAddForm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddForm(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+             <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.95 }} className="bg-white rounded-[32px] w-full max-w-lg overflow-hidden relative shadow-2xl z-[110]">
+                <div className="p-8 bg-indigo-600 text-white">
+                   <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl w-fit mb-4">
+                      <Sparkles size={24} />
+                   </div>
+                   <h2 className="text-2xl font-black tracking-tight">Post Announcement</h2>
+                   <p className="text-indigo-100 text-sm font-medium mt-1">Broadcast important news to all students</p>
+                   <button onClick={() => setShowAddForm(false)} className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors">
+                      <X size={24} />
+                   </button>
+                </div>
+                <form className="p-8 space-y-6" onSubmit={handlePostNotice}>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Title</label>
+                      <input 
+                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500/10 outline-none"
+                        value={title}
+                        onChange={e => setTitle(e.target.value)}
+                        placeholder="e.g. Mandatory Hostel Meeting"
+                        required
+                      />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Priority</label>
+                      <div className="flex gap-2">
+                         {['Normal', 'Urgent', 'Low'].map(p => (
+                           <button
+                            key={p}
+                            type="button"
+                            onClick={() => setPriority(p)}
+                            className={cn(
+                              "flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                              priority === p ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                            )}
+                           >
+                             {p}
+                           </button>
+                         ))}
+                      </div>
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Announcement Content</label>
+                      <textarea 
+                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500/10 outline-none min-h-[120px]"
+                        value={content}
+                        onChange={e => setContent(e.target.value)}
+                        placeholder="Write your announcement details here..."
+                        required
+                      />
+                   </div>
+                   <Button variant="gradient" className="w-full h-14 rounded-2xl font-black tracking-tight mt-4">
+                      Publish Notice
+                   </Button>
+                </form>
+             </motion.div>
           </div>
         )}
-      </main>
+      </AnimatePresence>
     </div>
   );
 };

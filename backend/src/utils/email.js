@@ -124,3 +124,46 @@ export const sendOTP = async (email, otp) => {
     throw new Error('Email sending failed. Please check your SMTP configuration.');
   }
 };
+
+export const sendResetEmail = async (email, resetUrl) => {
+  const mailOptions = {
+    from: `"UHostel" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: 'Reset Your Password - UHostel',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          .container { font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 500px; margin: 20px auto; padding: 40px; border-radius: 16px; background: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #f0f0f0; }
+          .logo-text { font-size: 28px; font-weight: 800; color: #4F46E5; letter-spacing: -1px; display: block; text-align: center; margin-bottom: 30px; }
+          .header { color: #1f2937; font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 20px; }
+          .btn-container { text-align: center; margin: 30px 0; }
+          .btn { background: #4F46E5; color: white !important; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 700; display: inline-block; }
+          .footer { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 30px; border-top: 1px solid #f3f4f6; padding-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <span class="logo-text">UHostel</span>
+          <div class="header">Password Reset Request</div>
+          <p style="color: #4b5563; line-height: 1.6; text-align: center;">
+            You requested a password reset. Click the button below to set a new password. This link will expire in 10 minutes.
+          </p>
+          <div class="btn-container">
+            <a href="${resetUrl}" class="btn">Reset Password</a>
+          </div>
+          <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+            If you didn't request this, you can safely ignore this email.
+          </p>
+          <div class="footer">
+            <p>&copy; 2026 UHostel. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+};

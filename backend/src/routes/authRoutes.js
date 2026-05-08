@@ -9,7 +9,9 @@ import {
   updateUser,
   deleteUser,
   getUserProfile,
-  changePassword
+  changePassword,
+  forgotPassword,
+  resetPassword
 } from '../controllers/authController.js';
 import { protect, admin } from '../middleware/auth.js';
 
@@ -22,6 +24,8 @@ router.post('/verify-login', verifyLoginOTP);
 router.post('/logout', logoutUser);
 router.get('/profile', protect, getUserProfile);
 router.put('/change-password', protect, changePassword);
+router.post('/forgot-password', forgotPassword);
+router.put('/reset-password/:token', resetPassword);
 
 router.route('/users')
   .get(protect, admin, getUsers);

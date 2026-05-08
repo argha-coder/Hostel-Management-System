@@ -1,11 +1,15 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import Sidebar from '../components/Sidebar';
-import { useNavigate } from 'react-router-dom';
-import { Bed, Home, CreditCard, Users, FileText, AlertTriangle, ShieldCheck, ArrowUpRight, Activity } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Bed, Home, CreditCard, Users, FileText, AlertTriangle, ShieldCheck, ArrowUpRight, Activity, TrendingUp, Calendar, ArrowRight, Plus } from 'lucide-react';
 import { api } from '../utils/api';
-import GlowOrb from '../components/GlowOrb';
-import DashboardSkeleton from '../components/DashboardSkeleton';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, Cell
+} from 'recharts';
+import { useNavigate } from 'react-router-dom';
+import { cn } from '../utils/cn';
 
 const AnimatedCounter = React.memo(({ from, to, duration = 2 }) => {
   const [count, setCount] = useState(from);
@@ -31,64 +35,47 @@ const AnimatedCounter = React.memo(({ from, to, duration = 2 }) => {
   return <span>{count}</span>;
 });
 
-const DashboardRowItem = React.memo(({ title, value, icon, prefix = '', onClick, color = 'var(--color-primary)', bgColor = 'var(--color-primary-light)' }) => {
-  return (
-    <motion.div 
-      whileHover={{ y: -5 }}
-      onClick={onClick}
-      className="glass-card" 
-      style={{ 
-        padding: '28px', 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column', 
-        justifyContent: 'center',
-        cursor: onClick ? 'pointer' : 'default',
-        background: 'rgba(255, 255, 255, 0.7)',
-        border: '1px solid rgba(255, 255, 255, 0.5)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div style={{ 
-          width: '48px', 
-          height: '48px', 
-          borderRadius: '14px', 
-          background: bgColor, 
-          color: color,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: `0 4px 12px ${color}20`
-        }}>
-           {icon}
+const StatCard = ({ title, value, icon: Icon, color, delay, prefix = '' }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay }}
+  >
+    <Card className="overflow-hidden border-none shadow-indigo-100/50">
+      <CardContent className="p-6">
+        <div className="flex justify-between items-start">
+          <div className={`p-3 rounded-2xl ${color.bg} ${color.text}`}>
+            <Icon size={24} />
+          </div>
         </div>
-        {onClick && <ArrowUpRight size={18} style={{ color: 'var(--color-text-muted)' }} />}
-      </div>
-      <div>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', fontWeight: 600, marginBottom: '4px' }}>{title}</p>
-        <h2 style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-1px' }}>
-          {prefix}<AnimatedCounter from={0} to={value} />
-        </h2>
-      </div>
-    </motion.div>
-  );
-});
+        <div className="mt-4">
+          <p className="text-sm font-medium text-slate-500">{title}</p>
+          <h3 className="text-3xl font-black text-slate-900 mt-1 tracking-tight">
+            {prefix}<AnimatedCounter from={0} to={typeof value === 'number' ? value : parseInt(value) || 0} />
+          </h3>
+        </div>
+      </CardContent>
+      <div className={`h-1 w-full ${color.main}`} />
+    </Card>
+  </motion.div>
+);
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
 
   const fetchStats = useCallback(async () => {
     try {
+      setRefreshing(true);
       const data = await api.get('/stats');
       setStats(data);
     } catch (err) {
       console.error("Failed to load stats", err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -97,13 +84,12 @@ const Dashboard = () => {
   }, [fetchStats]);
 
   if (loading) {
-    return <DashboardSkeleton />;
-  }
-
-  if (!stats) {
     return (
-      <div style={{ display: 'flex', background: 'var(--color-bg)', minHeight: '100vh', alignItems: 'center', justifyContent: 'center' }}>
-        <p>Unable to connect to server. Please try refreshing.</p>
+      <div className="space-y-8 animate-pulse">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-slate-200 rounded-2xl" />)}
+        </div>
+        <div className="h-[400px] bg-slate-200 rounded-2xl" />
       </div>
     );
   }
@@ -111,247 +97,274 @@ const Dashboard = () => {
   const isAdmin = stats?.role === 'Admin';
 
   return (
-    <div style={{ display: 'flex', background: 'var(--color-bg)', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
-      <Sidebar />
-      
-      {/* Background Orbs */}
-      <GlowOrb color="rgba(79, 70, 229, 0.12)" size="500px" top="-10%" left="60%" />
-      <GlowOrb color="rgba(16, 185, 129, 0.08)" size="400px" top="50%" left="20%" delay={1} />
-      
-      <main style={{ marginLeft: '300px', padding: '48px', flex: 1, zIndex: 1 }}>
-        <header style={{ marginBottom: '48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <motion.h1 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              style={{ fontSize: '2.25rem', color: 'var(--color-text)', fontWeight: 800, letterSpacing: '-1px' }}
-            >
-              {isAdmin ? 'Overview' : `Hello, ${stats.user?.name?.split(' ')[0] || 'Student'}! 👋`}
-            </motion.h1>
-            <motion.p 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              style={{ color: 'var(--color-text-muted)', marginTop: '6px', fontWeight: 500, fontSize: '1rem' }}
-            >
-              {isAdmin ? 'Manage your hostel operations with ease' : "Here's what's happening today"}
-            </motion.p>
-          </div>
-          
-          {!isAdmin && stats.user.room && (
+    <div className="space-y-8">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+            {isAdmin ? 'System Overview' : `Welcome back, ${stats.user?.name?.split(' ')[0]}!`}
+          </h1>
+          <p className="text-slate-500 font-medium mt-1">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {!isAdmin && stats.user?.room && (
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="glass-card"
-              style={{ 
-                display: 'flex', alignItems: 'center', gap: '16px', 
-                padding: '16px 24px', 
-                background: 'rgba(255, 255, 255, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.5)'
-              }}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-3 px-4 py-2 bg-indigo-50 rounded-2xl border border-indigo-100"
             >
-              <div style={{ 
-                width: '44px', 
-                height: '44px', 
-                borderRadius: '12px', 
-                background: 'var(--color-primary-light)', 
-                color: 'var(--color-primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Bed size={22} />
+              <div className="p-1.5 bg-indigo-600 text-white rounded-lg">
+                <Home size={16} />
               </div>
-              <div>
-                <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Your Room</p>
-                <p style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-text)' }}>Room {stats.user.room.room_number}</p>
+              <div className="text-left">
+                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none">Your Room</p>
+                <p className="text-sm font-black text-indigo-900 leading-tight">Room {stats.user.room.room_number}</p>
               </div>
             </motion.div>
           )}
-        </header>
-
-        {!isAdmin && stats.bookings?.some(b => b.status === 'Approved' && b.payment_status === 'Unpaid') && (
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="glass-card"
-            style={{ 
-              marginBottom: '32px', 
-              background: 'linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)', 
-              border: '1px solid #FED7AA',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '20px 32px'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#EA580C', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CreditCard size={24} />
-              </div>
-              <div>
-                <h4 style={{ color: '#9A3412', fontWeight: 800, fontSize: '1.1rem' }}>Hostel Fees Payment Pending</h4>
-                <p style={{ color: '#C2410C', fontWeight: 500, fontSize: '0.9rem' }}>Your room has been approved! Please complete the fee payment to finalize your allotment.</p>
-              </div>
-            </div>
-            <button 
-              onClick={() => navigate('/fees')}
-              className="btn-primary"
-              style={{ background: '#EA580C', color: 'white', boxShadow: '0 4px 12px rgba(234, 88, 12, 0.2)' }}
+          {isAdmin && (
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="gap-2" 
+              onClick={fetchStats}
+              isLoading={refreshing}
+              disabled={refreshing}
             >
-              Pay Now
-            </button>
-          </motion.div>
-        )}
-
-
-        {isAdmin ? (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <div style={{ display: 'flex', gap: '24px', marginBottom: '40px', flexWrap: 'wrap' }}>
-              <DashboardRowItem 
-                title="Total Students" 
-                value={stats.totalStudents} 
-                icon={<Users size={24} />} 
-                onClick={() => navigate('/students')} 
-                color="#4F46E5"
-                bgColor="#EEF2FF"
-              />
-              <DashboardRowItem 
-                title="Available Rooms" 
-                value={stats.availableRooms} 
-                icon={<Home size={24} />} 
-                onClick={() => navigate('/rooms')} 
-                color="#10B981"
-                bgColor="#ECFDF5"
-              />
-              <DashboardRowItem 
-                title="Pending Gate Pass" 
-                value={stats.pendingGatePasses} 
-                icon={<FileText size={24} />} 
-                onClick={() => navigate('/gatepass')} 
-                color="#8B5CF6"
-                bgColor="#F5F3FF"
-              />
-              <DashboardRowItem 
-                title="Pending Fees" 
-                value={stats.pendingRevenue} 
-                prefix="₹" 
-                icon={<CreditCard size={24} />} 
-                onClick={() => navigate('/admin-payments')} 
-                color="#EC4899"
-                bgColor="#FDF2F8"
-              />
-              <DashboardRowItem 
-                title="Active Fines" 
-                value={stats.pendingFines} 
-                prefix="₹" 
-                icon={<AlertTriangle size={24} />} 
-                onClick={() => navigate('/fines')} 
-                color="#F59E0B"
-                bgColor="#FFFBEB"
-              />
+              <Activity size={16} /> {refreshing ? 'Updating...' : 'Refresh Stats'}
+            </Button>
+          )}
+        </div>
+      </header>
+      
+      {!isAdmin && stats.bookings?.some(b => b.status === 'Approved' && b.payment_status === 'Unpaid') && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100 p-6 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm"
+        >
+          <div className="flex items-center gap-6">
+            <div className="w-14 h-14 bg-orange-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-orange-200">
+              <CreditCard size={28} />
             </div>
-
-            
-            <div style={{ display: 'flex', gap: '24px' }}>
-               <div className="glass-card" style={{ flex: 2, padding: '32px', minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                    <h3 style={{ color: 'var(--color-text)', fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.5px' }}>Occupancy Metrics</h3>
-                    <div style={{ padding: '8px 16px', borderRadius: '10px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', fontSize: '0.85rem', fontWeight: 700 }}>Real-time Data</div>
-                 </div>
-                 <div style={{ width: '100%', flex: 1, background: 'rgba(79, 70, 229, 0.03)', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed rgba(79, 70, 229, 0.1)' }}>
-                    <div style={{ textAlign: 'center' }}>
-                       <p style={{ color: 'var(--color-primary)', fontSize: '5rem', fontWeight: 900, letterSpacing: '-4px', lineHeight: 1 }}>{stats.occupancyRate}%</p>
-                       <p style={{ color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '8px' }}>Total Hostel Occupancy</p>
-                    </div>
-                 </div>
-               </div>
-               
-               <div className="glass-card" style={{ flex: 1, padding: '32px', minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                       <Activity size={18} />
-                    </div>
-                    <h3 style={{ color: 'var(--color-text)', fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.5px' }}>System Status</h3>
-                 </div>
-                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '16px', border: '1px solid #F1F5F9' }}>
-                         <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--color-success)', boxShadow: '0 0 0 4px rgba(16, 185, 129, 0.1)' }} />
-                         <div style={{ flex: 1 }}>
-                            <p style={{ color: 'var(--color-text)', fontSize: '0.95rem', fontWeight: 700 }}>Database Online</p>
-                            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', marginTop: '2px', fontWeight: 500 }}>Connection stable</p>
-                         </div>
-                    </div>
-                    <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '16px', border: '1px solid #F1F5F9' }}>
-                         <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--color-success)', boxShadow: '0 0 0 4px rgba(16, 185, 129, 0.1)' }} />
-                         <div style={{ flex: 1 }}>
-                            <p style={{ color: 'var(--color-text)', fontSize: '0.95rem', fontWeight: 700 }}>Email Service</p>
-                            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', marginTop: '2px', fontWeight: 500 }}>SMTP Verified</p>
-                         </div>
-                    </div>
-                 </div>
-               </div>
-            </div>
-          </motion.div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-            <div style={{ display: 'flex', gap: '24px' }}>
-              <div className="glass-card" style={{ flex: 1, padding: '32px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-                  <div style={{ padding: '12px', borderRadius: '14px', background: '#EEF2FF', color: '#4F46E5' }}>
-                    <ShieldCheck size={28} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.5px' }}>Security</h3>
-                    <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Account protection</p>
-                  </div>
-                </div>
-                <div style={{ background: '#F8FAFC', padding: '24px', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
-                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '20px', lineHeight: 1.5, fontWeight: 500 }}>
-                    Keep your account secure by updating your password regularly. We recommend a strong, unique password.
-                  </p>
-                  <button 
-                    onClick={() => navigate('/change-password')}
-                    className="btn-primary"
-                    style={{ width: '100%', background: 'var(--color-primary-light)', color: 'var(--color-primary)', boxShadow: 'none' }}
-                  >
-                    Change Password
-                  </button>
-                </div>
-              </div>
-
-              <div className="glass-card" style={{ flex: 1, padding: '32px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-                  <div style={{ padding: '12px', borderRadius: '14px', background: '#FFF7ED', color: '#EA580C' }}>
-                    <CreditCard size={28} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.5px' }}>Payments</h3>
-                    <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Dues and transactions</p>
-                  </div>
-                </div>
-                <div style={{ background: '#F8FAFC', padding: '24px', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
-                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '20px', lineHeight: 1.5, fontWeight: 500 }}>
-                    Check your pending hostel fees and room allotment charges. Pay them securely online.
-                  </p>
-                  <button 
-                    onClick={() => navigate('/fees')}
-                    className="btn-primary"
-                    style={{ width: '100%', background: '#FFF7ED', color: '#EA580C', boxShadow: 'none' }}
-                  >
-                    View Hostel Fees
-                  </button>
-
-                </div>
-              </div>
+            <div>
+              <h4 className="text-xl font-black text-orange-900 tracking-tight">Hostel Fees Pending</h4>
+              <p className="text-orange-700 font-medium">Your room allotment is approved! Please complete the payment to secure your stay.</p>
             </div>
           </div>
-        )}
-      </main>
+          <Button 
+            onClick={() => navigate('/fees')}
+            className="bg-orange-600 hover:bg-orange-700 text-white font-black px-8 h-12 rounded-xl shadow-lg shadow-orange-200"
+          >
+            Settle Dues
+          </Button>
+        </motion.div>
+      )}
+
+      {/* Stats Grid */}
+      {isAdmin ? (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-8"
+        >
+          {/* Admin Metrics Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard 
+              title="Total Students" 
+              value={stats.totalStudents} 
+              icon={Users} 
+              delay={0.1}
+              color={{ bg: 'bg-indigo-50', text: 'text-indigo-600', main: 'bg-indigo-600' }}
+            />
+            <StatCard 
+              title="Available Rooms" 
+              value={stats.availableRooms} 
+              icon={Home} 
+              delay={0.2}
+              color={{ bg: 'bg-emerald-50', text: 'text-emerald-600', main: 'bg-emerald-600' }}
+            />
+            <StatCard 
+              title="Pending Gate Pass" 
+              value={stats.pendingGatePasses} 
+              icon={FileText} 
+              delay={0.3}
+              color={{ bg: 'bg-purple-50', text: 'text-purple-600', main: 'bg-purple-600' }}
+            />
+            <StatCard 
+              title="Pending Revenue" 
+              value={stats.pendingRevenue} 
+              icon={CreditCard} 
+              prefix="₹"
+              delay={0.4}
+              color={{ bg: 'bg-rose-50', text: 'text-rose-600', main: 'bg-rose-600' }}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <Card className="lg:col-span-2 border-none shadow-slate-200/50">
+              <CardHeader className="flex flex-row items-center justify-between pb-8">
+                <div>
+                  <CardTitle className="text-xl font-black text-slate-900 tracking-tight">Occupancy Metrics</CardTitle>
+                  <CardDescription className="text-slate-500 font-medium">Real-time hostel utilization data</CardDescription>
+                </div>
+                <div className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-black uppercase tracking-widest">
+                  Live Feed
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px] w-full bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-100 flex items-center justify-center relative overflow-hidden group">
+                  <div className="text-center relative z-10">
+                    <motion.p 
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="text-8xl font-black text-indigo-600 tracking-tighter"
+                    >
+                      {stats.occupancyRate}%
+                    </motion.p>
+                    <p className="text-slate-400 font-bold mt-2 uppercase tracking-widest text-sm">Total Capacity Utilized</p>
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-indigo-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-slate-200/50">
+              <CardHeader className="pb-8">
+                <CardTitle className="text-xl font-black text-slate-900 tracking-tight">System Health</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { name: 'Core Database', status: 'Optimal', color: 'bg-emerald-500' },
+                  { name: 'SMTP Gateway', status: 'Verified', color: 'bg-emerald-500' },
+                  { name: 'Payment Bridge', status: 'Stable', color: 'bg-emerald-500' },
+                  { name: 'Cloud Storage', status: 'Online', color: 'bg-indigo-500' }
+                ].map((s, i) => (
+                  <div key={i} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-4">
+                    <div className={`w-2.5 h-2.5 rounded-full animate-pulse shadow-[0_0_8px_rgba(0,0,0,0.1)] ${s.color}`} />
+                    <div className="flex-1">
+                      <p className="text-sm font-black text-slate-900">{s.name}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{s.status}</p>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </motion.div>
+      ) : (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-8"
+        >
+          {/* Student Specific Cards */}
+          <Card className="border-none shadow-slate-200/50 p-4">
+            <CardHeader className="flex flex-row items-center gap-4 pb-6">
+              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+                <ShieldCheck size={28} />
+              </div>
+              <div>
+                <CardTitle className="text-xl font-black text-slate-900 tracking-tight">Security Center</CardTitle>
+                <CardDescription className="font-medium">Maintain your account protection</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                <p className="text-sm font-medium text-slate-500 leading-relaxed">
+                  Keep your portal secure. We recommend changing your password every 90 days to ensure maximum security.
+                </p>
+                <Button 
+                  variant="secondary" 
+                  className="w-full mt-6 bg-white border-slate-200 text-indigo-600 rounded-xl font-black"
+                  onClick={() => navigate('/change-password')}
+                >
+                  Update Credentials
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-slate-200/50 p-4">
+            <CardHeader className="flex flex-row items-center gap-4 pb-6">
+              <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
+                <CreditCard size={28} />
+              </div>
+              <div>
+                <CardTitle className="text-xl font-black text-slate-900 tracking-tight">Financial Hub</CardTitle>
+                <CardDescription className="font-medium">Manage your dues and receipts</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                <p className="text-sm font-medium text-slate-500 leading-relaxed">
+                  Check your pending hostel fees, room allotment charges, and fine history. Settle your dues securely via Razorpay.
+                </p>
+                <Button 
+                  variant="secondary" 
+                  className="w-full mt-6 bg-white border-slate-200 text-amber-600 rounded-xl font-black"
+                  onClick={() => navigate('/fees')}
+                >
+                  Review My Fees
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+
+
+      {isAdmin && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+           <Card className="border-none shadow-slate-200/50">
+             <CardHeader>
+               <CardTitle className="text-xl font-black tracking-tight tracking-tight">System Health</CardTitle>
+             </CardHeader>
+             <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                  <span className="font-bold text-slate-700">Total Students</span>
+                  <span className="text-indigo-600 font-black">{stats.totalStudents}</span>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                  <span className="font-bold text-slate-700">Total Rooms</span>
+                  <span className="text-indigo-600 font-black">{stats.totalRooms}</span>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                  <span className="font-bold text-slate-700">Verified Students</span>
+                  <span className="text-emerald-600 font-black">{stats.verifiedStudents}</span>
+                </div>
+             </CardContent>
+           </Card>
+           
+           <Card className="border-none shadow-slate-200/50">
+             <CardHeader>
+               <CardTitle className="text-xl font-black">Quick Actions</CardTitle>
+             </CardHeader>
+             <CardContent className="grid grid-cols-2 gap-4">
+                <Button variant="ghost" className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 h-auto py-6 flex-col gap-3 rounded-3xl border border-indigo-100" onClick={() => navigate('/students')}>
+                  <Users size={28} />
+                  <span className="text-xs font-black uppercase tracking-widest">Students</span>
+                </Button>
+                <Button variant="ghost" className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 h-auto py-6 flex-col gap-3 rounded-3xl border border-emerald-100" onClick={() => navigate('/rooms')}>
+                  <Home size={28} />
+                  <span className="text-xs font-black uppercase tracking-widest">Rooms</span>
+                </Button>
+                <Button variant="ghost" className="bg-purple-50 text-purple-600 hover:bg-purple-100 h-auto py-6 flex-col gap-3 rounded-3xl border border-purple-100" onClick={() => navigate('/gatepass')}>
+                  <FileText size={28} />
+                  <span className="text-xs font-black uppercase tracking-widest">Gatepass</span>
+                </Button>
+                <Button variant="ghost" className="bg-rose-50 text-rose-600 hover:bg-rose-100 h-auto py-6 flex-col gap-3 rounded-3xl border border-rose-100" onClick={() => navigate('/fines')}>
+                  <AlertTriangle size={28} />
+                  <span className="text-xs font-black uppercase tracking-widest">Fines</span>
+                </Button>
+             </CardContent>
+           </Card>
+        </div>
+      )}
     </div>
   );
 };

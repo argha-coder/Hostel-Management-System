@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import Sidebar from '../components/Sidebar';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../utils/api';
-import { Search, Filter, Download, User, CreditCard, Clock, AlertCircle, CheckCircle, Trash2 } from 'lucide-react';
-import GlowOrb from '../components/GlowOrb';
+import { 
+  Search, Filter, Download, User, CreditCard, Clock, 
+  AlertCircle, CheckCircle, Trash2, ChevronLeft, ChevronRight,
+  MoreHorizontal, FileText, ArrowRight, DollarSign
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { cn } from '../utils/cn';
 
 const AdminPayments = () => {
   const [payments, setPayments] = useState([]);
@@ -27,11 +32,10 @@ const AdminPayments = () => {
   };
 
   const handleDeleteRecord = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this payment record? This will remove the fee from the student dashboard.')) return;
+    if (!window.confirm('Are you sure you want to delete this payment record?')) return;
     try {
       await api.delete(`/payments/${id}`);
       setPayments(prev => prev.filter(p => p._id !== id));
-      alert('Record deleted successfully');
     } catch (err) {
       alert(err.message || 'Failed to delete record');
     }
@@ -76,154 +80,150 @@ const AdminPayments = () => {
   };
 
   return (
-    <div style={{ display: 'flex', background: 'var(--color-bg)', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
-      <Sidebar />
-      <GlowOrb color="rgba(79, 70, 229, 0.08)" size="600px" top="-10%" left="50%" />
-      
-      <main style={{ marginLeft: '300px', padding: '48px', flex: 1, zIndex: 1 }}>
-        <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <div>
-            <motion.h1 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              style={{ fontSize: '2.25rem', color: 'var(--color-text)', fontWeight: 800, letterSpacing: '-1px' }}
-            >
-              Payment Records
-            </motion.h1>
-            <p style={{ color: 'var(--color-text-muted)', marginTop: '8px', fontWeight: 500 }}>
-              Monitor student fee payments and identify outstanding dues
-            </p>
-          </div>
-          <button 
-            onClick={exportToCSV}
-            className="btn-secondary" 
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px' }}
-          >
-            <Download size={18} /> Export CSV
-          </button>
-        </header>
-
-        {/* Filters */}
-        <div style={{ display: 'flex', gap: '20px', marginBottom: '32px' }}>
-          <div style={{ flex: 1, position: 'relative' }}>
-            <Search size={20} style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
-            <input 
-              type="text" 
-              placeholder="Search by student name or room number..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="glass-card"
-              style={{ width: '100%', padding: '16px 16px 16px 56px', background: 'rgba(255, 255, 255, 0.8)', border: '1px solid rgba(255, 255, 255, 0.5)', outline: 'none', fontWeight: 500 }}
-            />
-          </div>
-          <div style={{ display: 'flex', background: 'white', padding: '6px', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
-            {['All', 'Paid', 'Unpaid'].map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                style={{
-                  padding: '10px 24px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  background: filter === f ? 'var(--color-primary)' : 'transparent',
-                  color: filter === f ? 'white' : 'var(--color-text-muted)',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                {f.toUpperCase()}
-              </button>
-            ))}
-          </div>
+    <div className="space-y-8">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Payment Oversight</h1>
+          <p className="text-slate-500 font-medium mt-1">Audit and manage student financial records</p>
         </div>
+        <div className="flex items-center gap-3">
+          <Button variant="gradient" className="gap-2 shadow-indigo-100" onClick={exportToCSV}>
+            <Download size={18} /> Export Records
+          </Button>
+        </div>
+      </header>
 
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}>
-            <motion.div 
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              style={{ width: '40px', height: '40px', border: '3px solid var(--color-primary-light)', borderTopColor: 'var(--color-primary)', borderRadius: '50%' }}
-            />
-          </div>
-        ) : (
-          <div className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+         <Card className="bg-indigo-600 text-white border-none shadow-indigo-100">
+            <CardContent className="p-6">
+               <p className="text-[10px] font-black uppercase tracking-widest text-indigo-100">Total Revenue</p>
+               <h3 className="text-3xl font-black mt-2">₹{payments.filter(p => p.payment_status === 'Paid').reduce((s, p) => s + p.amount, 0).toLocaleString()}</h3>
+            </CardContent>
+         </Card>
+         <Card className="border-none shadow-slate-200/50">
+            <CardContent className="p-6">
+               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Unpaid Dues</p>
+               <h3 className="text-3xl font-black mt-2 text-rose-600">₹{payments.filter(p => p.payment_status !== 'Paid').reduce((s, p) => s + p.amount, 0).toLocaleString()}</h3>
+            </CardContent>
+         </Card>
+      </div>
+
+      <Card className="border-none shadow-slate-200/50 overflow-hidden">
+        <CardHeader className="bg-white/50 backdrop-blur-sm border-b border-slate-50 p-6">
+           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="relative flex-1 max-w-md">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                 <input 
+                  type="text" 
+                  placeholder="Search student or room..." 
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/10 outline-none"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                 />
+              </div>
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                 {['All', 'Paid', 'Unpaid'].map((f) => (
+                   <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={cn(
+                      "px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all",
+                      filter === f ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                    )}
+                   >
+                     {f}
+                   </button>
+                 ))}
+              </div>
+           </div>
+        </CardHeader>
+        
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid var(--color-border)' }}>
-                  <th style={{ padding: '24px', color: 'var(--color-text-muted)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase' }}>Student</th>
-                  <th style={{ padding: '24px', color: 'var(--color-text-muted)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase' }}>Room Info</th>
-                  <th style={{ padding: '24px', color: 'var(--color-text-muted)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase' }}>Amount</th>
-                  <th style={{ padding: '24px', color: 'var(--color-text-muted)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase' }}>Allocation Date</th>
-                  <th style={{ padding: '24px', color: 'var(--color-text-muted)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase' }}>Status</th>
-                  <th style={{ padding: '24px', color: 'var(--color-text-muted)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase' }}>Actions</th>
+                <tr className="bg-slate-50/50 border-b border-slate-100">
+                  <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Resident</th>
+                  <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Allocation</th>
+                  <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Financials</th>
+                  <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Status</th>
+                  <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {filteredPayments.map((p) => (
-                  <tr key={p._id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s ease' }}>
-                    <td style={{ padding: '24px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--color-primary-light)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
-                          {p.student_id?.name?.charAt(0) || 'U'}
+              <tbody className="divide-y divide-slate-50">
+                <AnimatePresence mode="popLayout">
+                  {loading ? (
+                    [...Array(5)].map((_, i) => (
+                      <tr key={i} className="animate-pulse">
+                        <td colSpan={5} className="px-6 py-4"><div className="h-12 bg-slate-100 rounded-xl" /></td>
+                      </tr>
+                    ))
+                  ) : filteredPayments.map((p) => (
+                    <motion.tr 
+                      key={p._id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="hover:bg-slate-50/50 transition-all group"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center font-black group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                            {p.student_id?.name?.charAt(0) || 'U'}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900 leading-none">{p.student_id?.name || 'Unknown'}</p>
+                            <p className="text-xs font-medium text-slate-400 mt-1">{p.student_id?.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p style={{ fontWeight: 700, color: 'var(--color-text)' }}>{p.student_id?.name || 'Unknown Student'}</p>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{p.student_id?.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '24px' }}>
-                      <p style={{ fontWeight: 700, color: 'var(--color-text)' }}>Room {p.room_id?.room_number || 'N/A'}</p>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{p.duration} Months Duration</p>
-                    </td>
-                    <td style={{ padding: '24px' }}>
-                      <p style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '1.1rem' }}>₹{p.amount}</p>
-                    </td>
-                    <td style={{ padding: '24px' }}>
-                      <p style={{ fontWeight: 600, color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-                        {new Date(p.start_date).toLocaleDateString()}
-                      </p>
-                    </td>
-                    <td style={{ padding: '24px' }}>
-                      <span style={{ 
-                        padding: '6px 14px', 
-                        borderRadius: '10px', 
-                        background: p.payment_status === 'Paid' ? '#ECFDF5' : '#FEF2F2', 
-                        color: p.payment_status === 'Paid' ? '#059669' : '#EF4444',
-                        fontSize: '0.8rem',
-                        fontWeight: 700
-                      }}>
-                        {p.payment_status === 'Paid' ? 'PAID' : 'UNPAID'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '24px' }}>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>View</button>
-                        {p.payment_status === 'Unpaid' && (
-                          <button 
-                            onClick={() => handleDeleteRecord(p._id)}
-                            className="btn-secondary" 
-                            style={{ padding: '8px', color: '#EF4444', borderColor: '#FCA5A5' }}
-                            title="Delete record"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-6 py-4">
+                         <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                            <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600"><FileText size={14} /></div>
+                            Room {p.room_id?.room_number || 'N/A'} • {p.duration}mo
+                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-black text-slate-900">₹{p.amount}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(p.start_date).toLocaleDateString()}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                         <span className={cn(
+                           "px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase",
+                           p.payment_status === 'Paid' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                         )}>
+                            {p.payment_status}
+                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 text-slate-400 hover:text-indigo-600">
+                               <ArrowRight size={18} />
+                            </Button>
+                            {p.payment_status === 'Unpaid' && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="rounded-xl h-9 w-9 text-rose-500 hover:bg-rose-50"
+                                onClick={() => handleDeleteRecord(p._id)}
+                              >
+                                 <Trash2 size={18} />
+                              </Button>
+                            )}
+                         </div>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
               </tbody>
             </table>
-            {filteredPayments.length === 0 && (
-              <div style={{ padding: '60px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                No allocated students found matching your criteria.
-              </div>
-            )}
           </div>
-        )}
-      </main>
+          {!loading && filteredPayments.length === 0 && (
+            <div className="p-20 text-center text-slate-400 font-medium">
+               No payment records match your current view.
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

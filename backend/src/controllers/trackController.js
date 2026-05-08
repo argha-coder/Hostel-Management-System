@@ -38,59 +38,72 @@ export const trackVisitor = async (req, res) => {
       device = `${uaResults.os.name || 'PC'} (${uaResults.device.type || 'Desktop'})`;
     }
 
-    // 3. Geolocation & ISP
-    let geoData = { country_name: 'Unknown', city: 'Unknown', region: 'Unknown', org: 'Unknown' };
-    try {
-      const response = await axios.get(`https://ipapi.co/${queryIp}/json/`);
-      if (!response.data.error) {
-        geoData = response.data;
-      }
-    } catch (e) {}
-
-    const locationString = `${geoData.city}, ${geoData.region}, ${geoData.country_name}`;
-
-    // 4. Create Detailed Discord Embed
-    const webhookPayload = {
-      username: 'Portfolio Analytics Bot',
-      embeds: [
-        {
-          title: '🛡️ Detailed Visitor Analytics',
-          color: 0x2b2d31,
-          fields: [
-            { name: '🌐 IP Address', value: `\`${ip}\``, inline: true },
-            { name: '📍 Location', value: locationString, inline: true },
-            { name: '🏢 ISP', value: geoData.org || 'Unknown', inline: true },
-            { name: '💻 OS', value: os, inline: true },
-            { name: '📱 Device', value: device, inline: true },
-            { name: '🧭 Browser', value: browser, inline: true },
-            { name: '🖥️ Resolution', value: resolution || 'Unknown', inline: true },
-            { name: '⏱️ Timezone', value: timezone || 'Unknown', inline: true },
-            { name: '🧠 CPU Cores', value: String(cores), inline: true },
-            { name: '💾 RAM Estimate', value: ram || 'Unknown', inline: true },
-            { name: '🗣️ Language', value: language || 'Unknown', inline: true },
-            { name: '🍪 Cookies', value: cookies || 'Unknown', inline: true },
-            { name: '🔋 Battery', value: batteryLevel || 'Unknown', inline: true },
-            { name: '⚡ Charging', value: isCharging || 'Unknown', inline: true },
-            { name: '🎨 Color Depth', value: colorDepth || 'Unknown', inline: true },
-            { name: '🔍 Pixel Ratio', value: String(pixelRatio), inline: true },
-            { name: '👆 Touch Points', value: String(touchPoints), inline: true },
-            { name: '📶 Network', value: networkType || 'Unknown', inline: true },
-            { name: '🔗 Referrer', value: referrer || 'Direct', inline: false },
-            { name: '⏰ Visit Time (Local)', value: `\`${localTime}\``, inline: false },
-            { name: '🕵️ User-Agent', value: `\`${req.headers['user-agent']}\``, inline: false }
-          ],
-          footer: { text: 'Bot provided by Spidy Bot' },
-          timestamp: new Date().toISOString()
-        }
-      ]
-    };
-
-    if (process.env.DISCORD_WEBHOOK_URL) {
-      await axios.post(process.env.DISCORD_WEBHOOK_URL, webhookPayload);
+    if (!process.env.DISCORD_WEBHOOK_URL) {
+      return res.status(200).json({ success: true, note: 'No webhook configured' });
     }
 
-    return res.status(200).json({ success: true });
+    // Respond immediately to the client
+    res.status(200).json({ success: true });
+
+    // Perform external calls in the background
+    (async () => {
+      try {
+        // 3. Geolocation & ISP
+        let geoData = { country_name: 'Unknown', city: 'Unknown', region: 'Unknown', org: 'Unknown' };
+        try {
+          const response = await axios.get(`https://ipapi.co/${queryIp}/json/`);
+          if (!response.data.error) {
+            geoData = response.data;
+          }
+        } catch (e) {}
+
+        const locationString = `${geoData.city}, ${geoData.region}, ${geoData.country_name}`;
+
+        // 4. Create Detailed Discord Embed
+        const webhookPayload = {
+          username: 'UHostel Analytics',
+          embeds: [
+            {
+              title: '🛡️ New Visitor Detected',
+              color: 0x4f46e5,
+              fields: [
+                { name: '🌐 IP Address', value: `\`${ip}\``, inline: true },
+                { name: '📍 Location', value: locationString, inline: true },
+                { name: '🏢 ISP', value: geoData.org || 'Unknown', inline: true },
+                { name: '💻 OS', value: os, inline: true },
+                { name: '📱 Device', value: device, inline: true },
+                { name: '🧭 Browser', value: browser, inline: true },
+                { name: '🖥️ Resolution', value: resolution || 'Unknown', inline: true },
+                { name: '⏱️ Timezone', value: timezone || 'Unknown', inline: true },
+                { name: '🧠 CPU Cores', value: String(cores), inline: true },
+                { name: '💾 RAM Estimate', value: ram || 'Unknown', inline: true },
+                { name: '🗣️ Language', value: language || 'Unknown', inline: true },
+                { name: '🍪 Cookies', value: cookies || 'Unknown', inline: true },
+                { name: '🔋 Battery', value: batteryLevel || 'Unknown', inline: true },
+                { name: '⚡ Charging', value: isCharging || 'Unknown', inline: true },
+                { name: '🎨 Color Depth', value: colorDepth || 'Unknown', inline: true },
+                { name: '🔍 Pixel Ratio', value: String(pixelRatio), inline: true },
+                { name: '👆 Touch Points', value: String(touchPoints), inline: true },
+                { name: '📶 Network', value: networkType || 'Unknown', inline: true },
+                { name: '🔗 Referrer', value: referrer || 'Direct', inline: false },
+                { name: '⏰ Visit Time (Local)', value: `\`${localTime}\``, inline: false },
+                { name: '🕵️ User-Agent', value: `\`${req.headers['user-agent']}\``, inline: false }
+              ],
+              footer: { text: 'UHostel Premium Management' },
+              timestamp: new Date().toISOString()
+            }
+          ]
+        };
+
+        await axios.post(process.env.DISCORD_WEBHOOK_URL, webhookPayload);
+      } catch (err) {
+        console.error('Background tracking failed:', err.message);
+      }
+    })();
   } catch (error) {
-    return res.status(500).json({ success: false });
+    // If headers haven't been sent yet
+    if (!res.headersSent) {
+      return res.status(500).json({ success: false });
+    }
   }
 };

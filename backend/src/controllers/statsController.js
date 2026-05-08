@@ -50,8 +50,10 @@ export const getDashboardSummary = async (req, res) => {
 export const getDashboardStats = async (req, res) => {
   try {
     if (req.user.role === 'Admin') {
-      const [totalStudents, roomStats, pendingBookings, pendingGatePassesCount, pendingFinesData] = await Promise.all([
+      const [totalStudents, verifiedStudents, totalRooms, roomStats, pendingBookings, pendingGatePassesCount, pendingFinesData] = await Promise.all([
         User.countDocuments({ role: 'Student' }),
+        User.countDocuments({ role: 'Student', isVerified: true }),
+        Room.countDocuments(),
         Room.aggregate([
           {
             $group: {
@@ -95,6 +97,8 @@ export const getDashboardStats = async (req, res) => {
       return res.json({
         role: 'Admin',
         totalStudents,
+        verifiedStudents,
+        totalRooms,
         availableRooms,
         pendingRevenue,
         pendingFines: pendingFinesTotal,

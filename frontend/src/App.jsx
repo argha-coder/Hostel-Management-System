@@ -15,9 +15,12 @@ const Notices = React.lazy(() => import('./pages/Notices'));
 const ChangePassword = React.lazy(() => import('./pages/ChangePassword'));
 const Fees = React.lazy(() => import('./pages/Fees'));
 const AdminPayments = React.lazy(() => import('./pages/AdminPayments'));
+const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
 
 import ProtectedRoute from './components/ProtectedRoute';
 import ChatBox from './components/ChatBox';
+import MainLayout from './components/MainLayout';
 
 function App() {
   const dispatch = useDispatch();
@@ -37,7 +40,7 @@ function App() {
       }
     };
     
-    if (localStorage.getItem('userInfo')) {
+    if (sessionStorage.getItem('userInfo')) {
       checkSession();
     }
   }, [dispatch]);
@@ -107,28 +110,33 @@ function App() {
   return (
     <div className="App">
       <React.Suspense fallback={
-        <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg)' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div className="loading-spinner" style={{ width: '40px', height: '40px', border: '3px solid var(--color-primary-light)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 1s linear infinite' }} />
-            <p style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>Loading UHostel...</p>
+        <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-slate-500 font-bold tracking-tight">Loading UHostel Premium...</p>
           </div>
-          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
         </div>
       }>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/rooms" element={<ProtectedRoute><Rooms /></ProtectedRoute>} />
-          <Route path="/students" element={<ProtectedRoute><Students /></ProtectedRoute>} />
-          <Route path="/fines" element={<ProtectedRoute><Fines /></ProtectedRoute>} />
-          <Route path="/gatepass" element={<ProtectedRoute><GatePass /></ProtectedRoute>} />
-          <Route path="/canteen" element={<ProtectedRoute><Canteen /></ProtectedRoute>} />
-          <Route path="/notices" element={<ProtectedRoute><Notices /></ProtectedRoute>} />
-          <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
-          <Route path="/fees" element={<ProtectedRoute><Fees /></ProtectedRoute>} />
-          <Route path="/admin-payments" element={<ProtectedRoute><AdminPayments /></ProtectedRoute>} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
+          
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
+            <Route path="/rooms" element={<MainLayout><Rooms /></MainLayout>} />
+            <Route path="/students" element={<MainLayout><Students /></MainLayout>} />
+            <Route path="/fines" element={<MainLayout><Fines /></MainLayout>} />
+            <Route path="/gatepass" element={<MainLayout><GatePass /></MainLayout>} />
+            <Route path="/canteen" element={<MainLayout><Canteen /></MainLayout>} />
+            <Route path="/notices" element={<MainLayout><Notices /></MainLayout>} />
+            <Route path="/change-password" element={<MainLayout><ChangePassword /></MainLayout>} />
+            <Route path="/fees" element={<MainLayout><Fees /></MainLayout>} />
+            <Route path="/admin-payments" element={<MainLayout><AdminPayments /></MainLayout>} />
+          </Route>
+
+          <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
       </React.Suspense>
       {userInfo && <ChatBox />}

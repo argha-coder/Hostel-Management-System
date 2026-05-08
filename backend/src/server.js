@@ -51,20 +51,6 @@ app.use(cors({
   credentials: true
 }));
 
-// 2. Connect to DB before handling requests
-app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (error) {
-    console.error('Database connection error in middleware:', error.message);
-    res.status(500).json({ 
-      message: 'Database connection failed',
-      error: error.message 
-    });
-  }
-});
-
 // Root Route
 app.get("/", (req, res) => {
   res.send("UHostel Backend Running 🚀");
@@ -82,10 +68,23 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// 2. Database Connection Middleware (Apply only after health checks)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('Database connection error in middleware:', error.message);
+    res.status(500).json({ 
+      message: 'Database connection failed',
+      error: error.message 
+    });
+  }
+});
+
 // Deep Health Check (Database test)
 app.get('/api/db-health', async (req, res) => {
   try {
-    await connectDB();
     const dbStatus = mongoose.connection.db.admin().ping();
     res.json({
       status: 'ok',

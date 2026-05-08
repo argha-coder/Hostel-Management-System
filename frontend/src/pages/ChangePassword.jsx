@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import Sidebar from '../components/Sidebar';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../utils/api';
-import { Key, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Key, ShieldCheck, AlertCircle, Lock, CheckCircle, ShieldAlert, Sparkles, ChevronRight } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { cn } from '../utils/cn';
 
 const ChangePassword = () => {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -40,114 +42,102 @@ const ChangePassword = () => {
   };
 
   return (
-    <div style={{ display: 'flex', background: 'var(--color-bg)', minHeight: '100vh' }}>
-      <Sidebar />
-      <main style={{ marginLeft: '300px', padding: '40px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <header style={{ marginBottom: '40px', width: '100%', maxWidth: '500px' }}>
-          <h1 style={{ fontSize: '1.8rem', color: 'var(--color-accent)', fontWeight: 700 }}>Security Settings</h1>
-          <p style={{ color: 'var(--color-text-muted)', marginTop: '5px' }}>Manage your account security and password</p>
+    <div className="flex flex-col items-center py-12">
+      <div className="w-full max-w-xl space-y-8">
+        <header className="text-center">
+          <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+             <Lock size={32} />
+          </div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Security Settings</h1>
+          <p className="text-slate-500 font-medium mt-1">Manage your account protection and credentials</p>
         </header>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="minimal-card" 
-          style={{ width: '100%', maxWidth: '500px', padding: '40px' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '30px' }}>
-            <div style={{ background: 'var(--color-accent-light)', padding: '10px', borderRadius: '12px' }}>
-              <ShieldCheck size={24} color="var(--color-accent)" />
-            </div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>Update Password</h2>
-          </div>
-
-          {message.text && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '10px',
-                padding: '15px', 
-                borderRadius: '10px', 
-                marginBottom: '25px',
-                backgroundColor: message.type === 'error' ? '#FEF2F2' : '#F0FDF4',
-                border: `1px solid ${message.type === 'error' ? '#FCA5A5' : '#86EFAC'}`,
-                color: message.type === 'error' ? '#991B1B' : '#166534',
-                fontSize: '0.9rem'
-              }}
-            >
-              {message.type === 'error' ? <AlertCircle size={18} /> : <ShieldCheck size={18} />}
-              {message.text}
-            </motion.div>
-          )}
-
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 500, color: 'var(--color-text)' }}>
-                Current Password
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input 
-                  type="password" 
-                  className="input-outline"
-                  placeholder="Enter current password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
-                />
+        <Card className="border-none shadow-slate-200/50 overflow-hidden relative group">
+           <div className="absolute top-0 left-0 w-full h-1 bg-indigo-600" />
+           <CardHeader className="p-8 pb-0">
+              <div className="flex items-center gap-4">
+                 <div className="p-3 bg-slate-50 rounded-2xl text-indigo-600 border border-slate-100">
+                    <ShieldCheck size={24} />
+                 </div>
+                 <div>
+                    <CardTitle className="text-xl font-black tracking-tight">Update Password</CardTitle>
+                    <CardDescription className="font-medium">Ensure your account stays secure</CardDescription>
+                 </div>
               </div>
-            </div>
+           </CardHeader>
 
-            <div style={{ borderTop: '1px solid var(--color-border)', margin: '10px 0' }}></div>
+           <CardContent className="p-8">
+              <AnimatePresence mode="wait">
+                {message.text && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
+                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    className={cn(
+                      "p-4 rounded-2xl flex items-center gap-3 text-sm font-bold border",
+                      message.type === 'error' ? "bg-rose-50 border-rose-100 text-rose-700" : "bg-emerald-50 border-emerald-100 text-emerald-700"
+                    )}
+                  >
+                    {message.type === 'error' ? <ShieldAlert size={18} /> : <CheckCircle size={18} />}
+                    {message.text}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 500, color: 'var(--color-text)' }}>
-                New Password
-              </label>
-              <input 
-                type="password" 
-                className="input-outline"
-                placeholder="Minimum 6 characters"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-              />
-            </div>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Current Password</label>
+                    <input 
+                      type="password" 
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all"
+                      placeholder="••••••••"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      required
+                    />
+                 </div>
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 500, color: 'var(--color-text)' }}>
-                Confirm New Password
-              </label>
-              <input 
-                type="password" 
-                className="input-outline"
-                placeholder="Re-type new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            </div>
+                 <div className="h-px bg-slate-100 my-8" />
 
-            <button 
-              type="submit" 
-              className="btn-primary" 
-              disabled={loading}
-              style={{ marginTop: '10px', padding: '14px' }}
-            >
-              {loading ? 'Updating...' : 'Change Password'}
-            </button>
-          </form>
-        </motion.div>
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">New Password</label>
+                    <input 
+                      type="password" 
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all"
+                      placeholder="Minimum 6 characters"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                    />
+                 </div>
 
-        <div style={{ marginTop: '30px', maxWidth: '500px', width: '100%', padding: '0 20px' }}>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', textAlign: 'center', lineHeight: 1.6 }}>
-            For your security, please ensure your new password is unique and not used on other platforms. 
-            You will not be logged out after changing your password.
-          </p>
-        </div>
-      </main>
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm Password</label>
+                    <input 
+                      type="password" 
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all"
+                      placeholder="Re-type new password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                 </div>
+
+                 <Button 
+                  variant="gradient" 
+                  className="w-full h-14 rounded-2xl font-black tracking-tight mt-4 gap-2"
+                  isLoading={loading}
+                 >
+                    <Sparkles size={18} /> Update Credentials <ChevronRight size={18} />
+                 </Button>
+              </form>
+           </CardContent>
+        </Card>
+
+        <p className="text-center text-xs font-bold text-slate-400 max-w-sm mx-auto leading-relaxed uppercase tracking-widest">
+           Your password is encrypted and never stored in plain text.
+        </p>
+      </div>
     </div>
   );
 };

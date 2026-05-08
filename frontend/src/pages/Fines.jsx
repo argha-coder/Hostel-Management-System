@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Sidebar from '../components/Sidebar';
 import { useSelector } from 'react-redux';
 import { api } from '../utils/api';
-import { AlertTriangle, Plus, CheckCircle, Trash2, User, Calendar, DollarSign, Filter, CreditCard, ArrowRight, Download } from 'lucide-react';
-import GlowOrb from '../components/GlowOrb';
+import { 
+  AlertTriangle, Plus, CheckCircle, Trash2, User, Calendar, 
+  DollarSign, Filter, CreditCard, ArrowRight, Download, X,
+  ShieldAlert, Sparkles, Receipt
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { cn } from '../utils/cn';
 import { generateReceipt } from '../utils/receiptService';
 
 const Fines = () => {
@@ -15,7 +20,6 @@ const Fines = () => {
   const [paying, setPaying] = useState(false);
   const [success, setSuccess] = useState(null);
   
-  // Issue Fine Form State
   const [selectedStudent, setSelectedStudent] = useState('');
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
@@ -25,9 +29,7 @@ const Fines = () => {
 
   useEffect(() => {
     fetchFines();
-    if (isAdmin) {
-      fetchStudents();
-    }
+    if (isAdmin) fetchStudents();
   }, []);
 
   const fetchFines = async () => {
@@ -42,22 +44,11 @@ const Fines = () => {
     }
   };
 
-  const handleDownloadReceipt = (fine) => {
-    generateReceipt({
-      type: 'Student Fine',
-      student: { name: userInfo.name, email: userInfo.email },
-      amount: fine.amount,
-      date: fine.payment_details?.date,
-      payment_id: fine.payment_details?.payment_id,
-      reference: fine._id,
-      details: `Fine Reason: ${fine.reason}`
-    });
-  };
-
   const fetchStudents = async () => {
     try {
-      const data = await api.get('/auth/users');
-      setStudents(data);
+      // Increase limit for dropdown to ensure most students are visible
+      const data = await api.get('/auth/users?limit=1000');
+      setStudents(data.users || data);
     } catch (err) {
       console.error('Fetch Students Error:', err);
     }
@@ -78,315 +69,245 @@ const Fines = () => {
       setSelectedStudent('');
       setAmount('');
       setReason('');
-      alert('Fine issued successfully');
     } catch (err) {
       alert(err.message || 'Failed to issue fine');
     }
   };
 
+  const handleDownloadReceipt = (fine) => {
+    generateReceipt({
+      type: 'Student Fine',
+      student: { name: userInfo.name, email: userInfo.email },
+      amount: fine.amount,
+      date: fine.payment_details?.date,
+      payment_id: fine.payment_details?.payment_id,
+      reference: fine._id,
+      details: `Fine Reason: ${fine.reason}`
+    });
+  };
+
   const handlePayFine = async (fineId) => {
     setPaying(true);
     try {
-      // 1. Create Razorpay Order for Fine
       const order = await api.post('/payments/create-order', { fine_id: fineId });
-      
-      if (!order.id) {
-        throw new Error("Could not create Razorpay order. Please check backend logs.");
-      }
-
-      // 2. Configure Razorpay Options
       const options = {
         key: order.key_id,
         amount: order.amount,
         currency: order.currency,
-        name: "UHostel Management",
-        description: "Student Fine Payment",
+        name: "UHostel Premium",
+        description: "Student Fine Settlement",
         order_id: order.id,
         handler: async (response) => {
-          try {
-            // 3. Verify Payment
-            const result = await api.post('/payments/verify', {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              fine_id: fineId
-            });
-            if (result.success) {
-              setSuccess("Payment successful! Fine settled.");
-              fetchFines();
-              setTimeout(() => setSuccess(null), 5000);
-            }
-          } catch (err) {
-            console.error("Verification failed", err);
-            alert("Payment verification failed. Please contact admin.");
+          const result = await api.post('/payments/verify', {
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            fine_id: fineId
+          });
+          if (result.success) {
+            setSuccess("Fine settled successfully!");
+            fetchFines();
+            setTimeout(() => setSuccess(null), 5000);
           }
         },
-        prefill: {
-          name: userInfo?.name,
-          email: userInfo?.email,
-        },
-        theme: {
-          color: "#EF4444", // Red theme for fines
-        },
-        modal: {
-          ondismiss: function() {
-            setPaying(false);
-          }
-        }
+        prefill: { name: userInfo?.name, email: userInfo?.email },
+        theme: { color: "#ef4444" },
       };
-
       const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function (response){
-        alert("Payment failed: " + response.error.description);
-        setPaying(false);
-      });
       rzp.open();
     } catch (err) {
-      console.error("Order creation failed", err);
       alert(err.message || "Failed to initiate payment.");
+    } finally {
       setPaying(false);
     }
   };
 
-  const handleMarkAsPaid = async (id) => {
-    if (!window.confirm('Are you sure you want to mark this fine as paid?')) return;
-    try {
-      const data = await api.put(`/fines/${id}/pay`);
-      setFines(prev => prev.map(f => f._id === id ? data : f));
-    } catch (err) {
-      alert(err.message || 'Failed to update fine status');
-    }
-  };
-
-  const handleDeleteFine = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this fine record?')) return;
-    try {
-      await api.delete(`/fines/${id}`);
-      setFines(prev => prev.filter(f => f._id !== id));
-    } catch (err) {
-      alert(err.message || 'Failed to delete fine');
-    }
-  };
-
   return (
-    <div style={{ display: 'flex', background: 'var(--color-bg)', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
-      <Sidebar />
-      <GlowOrb color="rgba(239, 68, 68, 0.05)" size="500px" top="20%" left="60%" />
-      
-      <main style={{ marginLeft: '300px', padding: '48px', flex: 1, zIndex: 1 }}>
-        <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ fontSize: '2.25rem', color: 'var(--color-text)', fontWeight: 800, letterSpacing: '-1px' }}>Student Fines</h1>
-            <p style={{ color: 'var(--color-text-muted)', marginTop: '8px', fontWeight: 500 }}>
-              {isAdmin ? 'Manage and issue fines for students' : 'View your issued fines and settle them instantly'}
-            </p>
-          </div>
-          {isAdmin && (
-            <button 
-              onClick={() => setShowIssueForm(true)}
-              className="btn-primary" 
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              <Plus size={18} /> Issue New Fine
-            </button>
-          )}
-        </header>
+    <div className="space-y-8">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Fee & Fine Management</h1>
+          <p className="text-slate-500 font-medium mt-1">
+            {isAdmin ? 'Monitor and enforce hostel discipline' : 'View and settle your issued penalties'}
+          </p>
+        </div>
+        {isAdmin && (
+          <Button variant="gradient" className="gap-2 shadow-indigo-100 bg-rose-600 hover:bg-rose-700" onClick={() => setShowIssueForm(true)}>
+            <Plus size={18} /> Issue Fine
+          </Button>
+        )}
+      </header>
 
-        <AnimatePresence>
-          {success && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-              animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
-              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-              style={{ 
-                background: '#ECFDF5', 
-                border: '1px solid #10B981', 
-                padding: '16px 24px', 
-                borderRadius: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                color: '#065F46',
-                fontWeight: 600
-              }}
-            >
-              <CheckCircle size={20} />
-              {success}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {showIssueForm && (
+      <AnimatePresence>
+        {success && (
           <motion.div 
-            initial={{ opacity: 0, y: -10 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            className="glass-card" 
-            style={{ padding: '32px', marginBottom: '40px', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-emerald-700 font-bold"
           >
-            <h3 style={{ marginBottom: '24px', fontWeight: 800, fontSize: '1.25rem' }}>Issue a Fine</h3>
-            <form onSubmit={handleIssueFine} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Select Student</label>
-                  <select 
-                    className="input-outline"
-                    value={selectedStudent}
-                    onChange={(e) => setSelectedStudent(e.target.value)}
-                    required
-                    style={{ padding: '14px' }}
-                  >
-                    <option value="">Choose a student...</option>
-                    {students.map(s => (
-                      <option key={s._id} value={s._id}>{s.name} ({s.email})</option>
-                    ))}
-                  </select>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Fine Amount (₹)</label>
-                  <input 
-                    type="number"
-                    className="input-outline" 
-                    value={amount} 
-                    onChange={(e) => setAmount(e.target.value)} 
-                    placeholder="e.g. 500"
-                    required
-                    style={{ padding: '14px' }}
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Reason for Fine</label>
-                <textarea 
-                  className="input-outline" 
-                  style={{ minHeight: '100px', padding: '16px' }}
-                  value={reason} 
-                  onChange={(e) => setReason(e.target.value)} 
-                  placeholder="Describe the reason for this fine..." 
-                  required
-                />
-              </div>
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setShowIssueForm(false)} className="btn-secondary">Cancel</button>
-                <button type="submit" className="btn-primary" style={{ background: '#EF4444' }}>Issue Fine</button>
-              </div>
-            </form>
+            <CheckCircle size={20} />
+            {success}
           </motion.div>
         )}
+      </AnimatePresence>
 
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}>
-            <motion.div 
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              style={{ width: '40px', height: '40px', border: '3px solid var(--color-primary-light)', borderTopColor: 'var(--color-primary)', borderRadius: '50%' }}
-            />
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <AnimatePresence>
-              {fines.map((fine) => (
-                <motion.div
-                  key={fine._id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="glass-card"
-                  style={{ padding: '32px', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '40px', alignItems: 'center' }}
-                >
-                  <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-                    <div style={{ 
-                      padding: '16px', borderRadius: '16px', 
-                      background: fine.status === 'Paid' ? '#ECFDF5' : '#FEF2F2',
-                      color: fine.status === 'Paid' ? '#059669' : '#EF4444'
-                    }}>
-                      <AlertTriangle size={32} />
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                        <h4 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-text)' }}>₹{fine.amount}</h4>
-                        <span style={{ 
-                          padding: '6px 14px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 800,
-                          background: fine.status === 'Paid' ? '#ECFDF5' : '#FEF2F2',
-                          color: fine.status === 'Paid' ? '#059669' : '#EF4444',
-                          textTransform: 'uppercase'
-                        }}>
-                          {fine.status === 'Paid' ? 'PAID' : 'UNPAID'}
-                        </span>
-                      </div>
-                      <p style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--color-text)' }}>{fine.reason}</p>
-                      {isAdmin && (
-                        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                          Issued to: <strong style={{ color: 'var(--color-text)' }}>{fine.student_id?.name}</strong>
-                        </p>
-                      )}
-                    </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+         {/* Summary Cards */}
+         <div className="lg:col-span-4 space-y-6">
+            <Card className="bg-rose-600 text-white border-none shadow-lg shadow-rose-100 overflow-hidden relative group">
+               <CardContent className="p-8 relative z-10">
+                  <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl w-fit mb-6">
+                     <AlertTriangle size={24} />
                   </div>
+                  <h3 className="text-2xl font-black tracking-tight leading-tight">Total Pending Penalties</h3>
+                  <div className="mt-4 flex items-baseline gap-2">
+                     <span className="text-4xl font-black">₹{fines.filter(f => f.status !== 'Paid').reduce((s, f) => s + f.amount, 0)}</span>
+                     <span className="text-rose-100 font-bold uppercase text-xs tracking-widest">Unpaid</span>
+                  </div>
+               </CardContent>
+               <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-500" />
+            </Card>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
-                      <Calendar size={16} />
-                      <span>Issued: {new Date(fine.issued_at).toLocaleDateString()}</span>
-                    </div>
-                    {fine.status === 'Paid' && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', color: '#059669', fontWeight: 600 }}>
-                        <CheckCircle size={16} />
-                        <span>Paid: {new Date(fine.paid_at).toLocaleDateString()}</span>
-                      </div>
-                    )}
+            <Card className="border-none shadow-slate-200/50">
+               <CardHeader>
+                  <CardTitle className="text-lg font-black tracking-tight">Recent Status</CardTitle>
+               </CardHeader>
+               <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                     <span className="text-sm font-bold text-slate-500">Settled this month</span>
+                     <span className="text-sm font-black text-emerald-600">
+                       {fines.filter(f => f.status === 'Paid').length} records
+                     </span>
                   </div>
+                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                     <span className="text-sm font-bold text-slate-500">Pending Actions</span>
+                     <span className="text-sm font-black text-rose-600">
+                       {fines.filter(f => f.status !== 'Paid').length} records
+                     </span>
+                  </div>
+               </CardContent>
+            </Card>
+         </div>
 
-                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                    {isAdmin ? (
-                      <>
-                        <button 
-                          onClick={() => handleDeleteFine(fine._id)}
-                          className="btn-secondary" 
-                          style={{ color: '#EF4444', borderColor: '#FCA5A5', padding: '10px' }}
-                        >
-                          <Trash2 size={20} />
-                        </button>
-                      </>
-                    ) : (
-                      fine.status === 'Paid' ? (
-                        <button 
-                          onClick={() => handleDownloadReceipt(fine)}
-                          className="btn-secondary" 
-                          style={{ padding: '10px 20px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}
-                        >
-                          <Download size={18} /> Receipt
-                        </button>
-                      ) : (
-                        <button 
-                          onClick={() => handlePayFine(fine._id)}
-                          disabled={paying}
-                          className="btn-primary"
-                          style={{ background: '#EF4444', display: 'flex', alignItems: 'center', gap: '8px' }}
-                        >
-                          {paying ? (
-                            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} style={{ width: '18px', height: '18px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%' }} />
-                          ) : (
-                            <><CreditCard size={18} /> Pay Now</>
-                          )}
-                        </button>
-                      )
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            
-            {fines.length === 0 && (
-              <div className="glass-card" style={{ padding: '80px', textAlign: 'center' }}>
-                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: '#94A3B8' }}>
-                  <DollarSign size={40} />
-                </div>
-                <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text)' }}>No Fines Issued</h3>
-                <p style={{ color: 'var(--color-text-muted)', marginTop: '8px' }}>Excellent! You have a clean record.</p>
+         {/* Fines List */}
+         <div className="lg:col-span-8 space-y-6">
+            {loading ? (
+              [...Array(3)].map(i => <div key={i} className="h-32 bg-slate-100 animate-pulse rounded-3xl" />)
+            ) : fines.length === 0 ? (
+              <Card className="p-20 text-center border-dashed border-2 border-slate-200 shadow-none bg-transparent">
+                 <div className="w-20 h-20 bg-slate-100 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-slate-300">
+                    <ShieldAlert size={40} />
+                 </div>
+                 <h3 className="text-xl font-black text-slate-900 tracking-tight">No penalties issued</h3>
+                 <p className="text-slate-500 font-medium mt-2">The record is clean. No fines found.</p>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                 {fines.map((fine) => (
+                   <motion.div layout key={fine._id}>
+                      <Card className="border-none shadow-slate-200/50 overflow-hidden group hover:shadow-rose-100/30 transition-all">
+                         <CardContent className="p-6 flex flex-col md:flex-row md:items-center gap-6">
+                            <div className={cn(
+                              "w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors",
+                              fine.status === 'Paid' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                            )}>
+                               <AlertTriangle size={28} />
+                            </div>
+                            <div className="flex-1">
+                               <div className="flex items-center gap-3">
+                                  <span className={cn(
+                                    "px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-widest uppercase",
+                                    fine.status === 'Paid' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                                  )}>
+                                    {fine.status}
+                                  </span>
+                                  <span className="text-xs font-bold text-slate-400">
+                                     {new Date(fine.issued_at).toLocaleDateString()}
+                                  </span>
+                               </div>
+                               <h3 className="text-lg font-black text-slate-900 tracking-tight mt-1">{fine.reason}</h3>
+                               {isAdmin && (
+                                 <p className="text-xs font-bold text-slate-500 mt-1">Issued to: {fine.student_id?.name}</p>
+                               )}
+                            </div>
+                            <div className="flex items-center gap-6">
+                               <div className="text-right">
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</p>
+                                  <p className="text-xl font-black text-slate-900">₹{fine.amount}</p>
+                               </div>
+                               <div className="flex gap-2">
+                                  {isAdmin ? (
+                                    <Button 
+                                      variant="secondary" 
+                                      size="sm" 
+                                      className="h-10 w-10 p-0 text-rose-600 bg-rose-50 border-none hover:bg-rose-600 hover:text-white"
+                                      onClick={() => api.delete(`/fines/${fine._id}`).then(() => fetchFines())}
+                                    >
+                                       <Trash2 size={18} />
+                                    </Button>
+                                  ) : (
+                                    fine.status === 'Paid' ? (
+                                      <Button variant="secondary" size="sm" className="gap-2 font-bold" onClick={() => handleDownloadReceipt(fine)}>
+                                         <Download size={16} /> Receipt
+                                      </Button>
+                                    ) : (
+                                      <Button variant="gradient" size="sm" className="bg-rose-600 hover:bg-rose-700" onClick={() => handlePayFine(fine._id)} isLoading={paying}>
+                                         Settle Now
+                                      </Button>
+                                    )
+                                  )}
+                               </div>
+                            </div>
+                         </CardContent>
+                      </Card>
+                   </motion.div>
+                 ))}
               </div>
             )}
+         </div>
+      </div>
+
+      {/* Issue Fine Modal (Admin) */}
+      <AnimatePresence>
+        {showIssueForm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowIssueForm(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+             <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.95 }} className="bg-white rounded-[32px] w-full max-w-lg overflow-hidden relative shadow-2xl z-[110]">
+                <div className="p-8 bg-rose-600 text-white">
+                   <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl w-fit mb-4">
+                      <ShieldAlert size={24} />
+                   </div>
+                   <h2 className="text-2xl font-black tracking-tight">Issue New Penalty</h2>
+                   <p className="text-rose-100 text-sm font-medium mt-1">Register a disciplinary fine for a student</p>
+                   <button onClick={() => setShowIssueForm(false)} className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors">
+                      <X size={24} />
+                   </button>
+                </div>
+                <form className="p-8 space-y-6" onSubmit={handleIssueFine}>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Student</label>
+                      <select className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-rose-500/10 outline-none" value={selectedStudent} onChange={e => setSelectedStudent(e.target.value)} required>
+                         <option value="">Choose a resident...</option>
+                         {students.map(s => <option key={s._id} value={s._id}>{s.name} ({s.email})</option>)}
+                      </select>
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Penalty Amount (₹)</label>
+                      <input type="number" className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-rose-500/10 outline-none" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)} required />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Reason for Penalty</label>
+                      <textarea className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-rose-500/10 outline-none min-h-[100px]" placeholder="Violation details..." value={reason} onChange={e => setReason(e.target.value)} required />
+                   </div>
+                   <Button variant="gradient" className="w-full h-14 rounded-2xl font-black tracking-tight bg-rose-600 hover:bg-rose-700">
+                      Issue Penalty
+                   </Button>
+                </form>
+             </motion.div>
           </div>
         )}
-      </main>
+      </AnimatePresence>
     </div>
   );
 };

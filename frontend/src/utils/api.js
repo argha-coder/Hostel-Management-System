@@ -31,7 +31,7 @@ const apiRequest = async (endpoint, options = {}) => {
     
     // Handle 401 Unauthorized (Session Expired) or 403 Forbidden (Unverified)
     if ((response.status === 401 || response.status === 403) && !endpoint.includes('/auth/login')) {
-      localStorage.removeItem('userInfo');
+      sessionStorage.removeItem('userInfo');
       window.location.href = '/login';
       return;
     }

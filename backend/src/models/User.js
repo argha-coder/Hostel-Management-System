@@ -7,7 +7,9 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: { type: String, enum: ['Admin', 'Student'], default: 'Student' },
   room_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Room' },
-  isVerified: { type: Boolean, default: false }
+  isVerified: { type: Boolean, default: false },
+  resetPasswordToken: String,
+  resetPasswordExpire: Date
 }, { 
   timestamps: true,
    // Disable buffering for this schema specifically

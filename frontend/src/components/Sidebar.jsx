@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, Bed, CreditCard, LogOut, FileText, ShoppingCart, Megaphone, Key, User, Receipt } from 'lucide-react';
+import { Home, Users, Bed, CreditCard, LogOut, FileText, ShoppingCart, Megaphone, Key, User, Receipt, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
 import { api } from '../utils/api';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '../utils/cn';
 
-const Sidebar = () => {
+const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const { pathname } = useLocation();
   const dispatch = useDispatch();
   const { userInfo } = useSelector(state => state.auth);
@@ -22,7 +23,6 @@ const Sidebar = () => {
     { name: 'Hostel Fees', path: '/fees', icon: <Receipt size={20} />, roles: ['Student'] },
     { name: 'Payment Records', path: '/admin-payments', icon: <Receipt size={20} />, roles: ['Admin'] },
     { name: 'Security', path: '/change-password', icon: <Key size={20} />, roles: ['Student'] },
-
   ];
 
   const filteredNavItems = navItems.filter(item => item.roles.includes(userInfo?.role || 'Student'));
@@ -39,125 +39,103 @@ const Sidebar = () => {
 
   return (
     <motion.div 
-      initial={{ x: -20, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      className="glass-card" 
-      style={{
-        width: '280px',
-        height: 'calc(100vh - 40px)',
-        position: 'fixed',
-        left: '20px',
-        top: '20px',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '32px 20px',
-        zIndex: 50,
-        background: 'rgba(255, 255, 255, 0.8)',
-        backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 255, 255, 0.4)'
-      }}
+      initial={false}
+      animate={{ width: isCollapsed ? '80px' : '280px' }}
+      className="fixed left-0 top-0 h-screen bg-white border-r border-slate-200 z-50 flex flex-col transition-all duration-300 ease-in-out"
     >
-      <div style={{ paddingBottom: '32px', borderBottom: '1px solid var(--color-border)', marginBottom: '32px' }}>
-        <h2 style={{ 
-          color: 'var(--color-primary)', 
-          fontSize: '1.75rem', 
-          fontWeight: 800,
-          letterSpacing: '-1px'
-        }}>
-          UHostel<span style={{ color: 'var(--color-text)' }}>.</span>
-        </h2>
+      <div className="p-6 flex items-center justify-between">
+        <AnimatePresence mode="wait">
+          {!isCollapsed && (
+            <motion.h2 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              className="text-2xl font-black text-indigo-600 tracking-tighter"
+            >
+              UHostel<span className="text-slate-900">.</span>
+            </motion.h2>
+          )}
+        </AnimatePresence>
+        <button 
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="p-2 rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-100 transition-colors"
+        >
+          {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </button>
       </div>
 
-      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <nav className="flex-1 px-4 space-y-1 mt-4">
         {filteredNavItems.map((item) => {
           const isActive = pathname === item.path;
           return (
             <Link
               key={item.name}
               to={item.path}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '14px 18px',
-                borderRadius: '14px',
-                color: isActive ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                background: isActive ? 'var(--color-primary-light)' : 'transparent',
-                textDecoration: 'none',
-                transition: 'var(--transition-smooth)',
-                fontWeight: isActive ? 700 : 500,
-                position: 'relative',
-                overflow: 'hidden'
-              }}
+              className={cn(
+                "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative",
+                isActive 
+                  ? "bg-indigo-50 text-indigo-600 font-bold" 
+                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+              )}
             >
+              <span className={cn(
+                "flex-shrink-0 transition-transform duration-200",
+                isActive ? "scale-110" : "group-hover:scale-110"
+              )}>
+                {item.icon}
+              </span>
+              {!isCollapsed && (
+                <motion.span 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-sm"
+                >
+                  {item.name}
+                </motion.span>
+              )}
               {isActive && (
                 <motion.div 
-                  layoutId="active-nav"
-                  style={{
-                    position: 'absolute',
-                    left: 0,
-                    width: '4px',
-                    height: '20px',
-                    backgroundColor: 'var(--color-primary)',
-                    borderRadius: '0 4px 4px 0'
-                  }}
+                  layoutId="active-pill"
+                  className="absolute left-0 w-1 h-6 bg-indigo-600 rounded-r-full"
                 />
               )}
-              <span style={{ display: 'flex', alignItems: 'center', transition: 'transform 0.3s ease' }}>
-                {React.cloneElement(item.icon, { size: 20 })}
-              </span>
-              <span style={{ fontSize: '0.95rem' }}>{item.name}</span>
+              {isCollapsed && (
+                <div className="absolute left-full ml-4 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-[60]">
+                  {item.name}
+                </div>
+              )}
             </Link>
           );
         })}
       </nav>
 
-      <div style={{ 
-        marginTop: 'auto', 
-        paddingTop: '24px', 
-        borderTop: '1px solid var(--color-border)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '20px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '0 8px' }}>
-          <div style={{ 
-            width: '40px', 
-            height: '40px', 
-            borderRadius: '12px', 
-            background: 'var(--color-primary-light)', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            color: 'var(--color-primary)'
-          }}>
+      <div className="p-4 border-t border-slate-100 space-y-4">
+        <div className={cn(
+          "flex items-center gap-3 p-2 rounded-xl transition-all",
+          isCollapsed ? "justify-center" : "bg-slate-50"
+        )}>
+          <div className="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0">
             <User size={20} />
           </div>
-          <div style={{ overflow: 'hidden' }}>
-            <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text)', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-              {userInfo?.name || 'User'}
-            </p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              {userInfo?.role}
-            </p>
-          </div>
+          {!isCollapsed && (
+            <div className="overflow-hidden">
+              <p className="text-sm font-bold text-slate-900 truncate">{userInfo?.name || 'User'}</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{userInfo?.role}</p>
+            </div>
+          )}
         </div>
 
         <button 
           onClick={handleLogout}
-          className="btn-secondary" 
-          style={{ 
-            width: '100%',
-            background: '#FEF2F2',
-            color: '#EF4444',
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            gap: '10px',
-            fontSize: '0.9rem'
-          }}
+          className={cn(
+            "flex items-center gap-3 w-full p-3 rounded-xl transition-all",
+            isCollapsed 
+              ? "justify-center text-red-500 hover:bg-red-50" 
+              : "bg-red-50 text-red-600 hover:bg-red-100 font-bold"
+          )}
         >
-          <LogOut size={18} /> Logout
+          <LogOut size={18} />
+          {!isCollapsed && <span className="text-sm">Logout</span>}
         </button>
       </div>
     </motion.div>

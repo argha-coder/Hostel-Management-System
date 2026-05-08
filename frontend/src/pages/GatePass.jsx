@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Sidebar from '../components/Sidebar';
-import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { api } from '../utils/api';
-import { Clock, CheckCircle, XCircle, FileText, Send, Calendar, User, ClipboardList } from 'lucide-react';
+import { 
+  Clock, CheckCircle, XCircle, FileText, Send, Calendar, User, 
+  ClipboardList, Plus, Search, Filter, ArrowRight, MoreHorizontal,
+  ChevronRight, Sparkles, ShieldAlert
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { cn } from '../utils/cn';
 
 const GatePass = () => {
   const [gatePasses, setGatePasses] = useState([]);
@@ -12,16 +17,13 @@ const GatePass = () => {
   const [error, setError] = useState('');
   const [showApplyForm, setShowApplyForm] = useState(false);
   
-  // Apply Form State
   const [reason, setReason] = useState('');
   const [departureTime, setDepartureTime] = useState('');
   const [returnTime, setReturnTime] = useState('');
 
-  const navigate = useNavigate();
   const { userInfo } = useSelector(state => state.auth);
   const isAdmin = userInfo?.role === 'Admin';
 
-  // Get current time in ISO format for datetime-local min attribute
   const getCurrentDateTime = () => {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -31,9 +33,7 @@ const GatePass = () => {
   const minDateTime = getCurrentDateTime();
 
   useEffect(() => {
-    if (userInfo) {
-      fetchGatePasses();
-    }
+    if (userInfo) fetchGatePasses();
   }, [userInfo, isAdmin]);
 
   const fetchGatePasses = async () => {
@@ -86,233 +86,236 @@ const GatePass = () => {
   };
 
   const handleStatusUpdate = async (id, status) => {
-    console.log(`Attempting to update GatePass ${id} to ${status}`);
     try {
       const confirmation = window.confirm(`Are you sure you want to ${status.toLowerCase()} this request?`);
-      if (!confirmation) {
-        console.log('Update cancelled by user');
-        return;
-      }
+      if (!confirmation) return;
 
-      // Simplified: Just use a default note for now to ensure functionality works
       const payload = { 
         status,
         review_note: `${status} by Warden on ${new Date().toLocaleDateString()}`
       };
 
-      console.log('Sending PUT request to backend...');
       const data = await api.put(`/gatepass/${id}`, payload);
-      console.log('Backend response received:', data);
-      
-      if (data && data._id) {
-        setGatePasses(prevPasses => {
-          const updated = prevPasses.map(gp => String(gp._id) === String(id) ? data : gp);
-          console.log('Updated state with new data');
-          return updated;
-        });
-      } else {
-        console.error('Invalid response structure:', data);
-        throw new Error('Invalid response from server');
-      }
+      setGatePasses(prev => prev.map(gp => String(gp._id) === String(id) ? data : gp));
     } catch (err) {
-      console.error('Update Status Error:', err);
       alert(err.message || 'Failed to update status');
     }
   };
 
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case 'Pending': return { bg: '#FEF3C7', text: '#D97706', icon: <Clock size={16} /> };
-      case 'Approved': return { bg: '#D1FAE5', text: '#059669', icon: <CheckCircle size={16} /> };
-      case 'Declined': return { bg: '#FEE2E2', text: '#DC2626', icon: <XCircle size={16} /> };
-      default: return { bg: '#F3F4F6', text: '#4B5563', icon: null };
-    }
+  const statusConfig = {
+    'Pending': { bg: 'bg-amber-50', text: 'text-amber-600', dot: 'bg-amber-500', icon: <Clock size={14} /> },
+    'Approved': { bg: 'bg-emerald-50', text: 'text-emerald-600', dot: 'bg-emerald-500', icon: <CheckCircle size={14} /> },
+    'Declined': { bg: 'bg-rose-50', text: 'text-rose-600', dot: 'bg-rose-500', icon: <XCircle size={14} /> },
   };
 
-  if (!userInfo) {
-    return (
-      <div style={{ display: 'flex', background: 'var(--color-bg)', minHeight: '100vh' }}>
-        <Sidebar />
-        <main style={{ marginLeft: '300px', padding: '40px', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ color: 'var(--color-text-muted)' }}>Loading user information...</p>
-        </main>
-      </div>
-    );
-  }
-
   return (
-    <div style={{ display: 'flex', background: 'var(--color-bg)', minHeight: '100vh' }}>
-      <Sidebar />
-      <main style={{ marginLeft: '300px', padding: '40px', flex: 1 }}>
-        <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ fontSize: '1.8rem', color: 'var(--color-accent)', fontWeight: 700 }}>Gate Pass Requests</h1>
-            <p style={{ color: 'var(--color-text-muted)', marginTop: '5px' }}>
-              {isAdmin ? 'Review and manage student leave requests' : 'Apply for and track your gate pass status'}
-            </p>
-          </div>
-          {!isAdmin && (
-            <button 
-              onClick={() => setShowApplyForm(true)}
-              className="btn-primary" 
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              <Send size={18} /> Apply for Pass
-            </button>
-          )}
-        </header>
-
-        {showApplyForm && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            className="minimal-card" 
-            style={{ padding: '30px', marginBottom: '40px', border: '1px solid var(--color-accent)' }}
-          >
-            <h3 style={{ marginBottom: '20px', fontWeight: 600 }}>New Gate Pass Application</h3>
-            <form onSubmit={handleApply} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>Reason for Leave</label>
-                <textarea 
-                  className="input-outline" 
-                  style={{ minHeight: '80px', padding: '12px' }}
-                  value={reason} 
-                  onChange={(e) => setReason(e.target.value)} 
-                  placeholder="e.g. Going home for the weekend / Medical appointment" 
-                />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>Departure Date & Time</label>
-                  <input 
-                    type="datetime-local"
-                    className="input-outline" 
-                    value={departureTime} 
-                    min={minDateTime}
-                    onChange={(e) => setDepartureTime(e.target.value)} 
-                  />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>Expected Return Date & Time</label>
-                  <input 
-                    type="datetime-local"
-                    className="input-outline" 
-                    value={returnTime} 
-                    min={departureTime || minDateTime}
-                    onChange={(e) => setReturnTime(e.target.value)} 
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setShowApplyForm(false)} className="btn-secondary">Cancel</button>
-                <button type="submit" className="btn-primary">Submit Application</button>
-              </div>
-            </form>
-          </motion.div>
+    <div className="space-y-8">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Gate Pass System</h1>
+          <p className="text-slate-500 font-medium mt-1">
+            {isAdmin ? 'Review and manage student leave requests' : 'Request and track your exit permits'}
+          </p>
+        </div>
+        {!isAdmin && (
+          <Button variant="gradient" className="gap-2 shadow-indigo-100" onClick={() => setShowApplyForm(true)}>
+            <Send size={18} /> New Application
+          </Button>
         )}
+      </header>
 
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '50px', color: 'var(--color-text-muted)' }}>Loading requests...</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <AnimatePresence>
-              {gatePasses.map((gp) => {
-                const status = getStatusStyle(gp.status);
-                return (
-                  <motion.div
-                    key={gp._id}
+      {/* Main List */}
+      <Card className="border-none shadow-slate-200/50 overflow-hidden">
+        <CardHeader className="bg-white/50 backdrop-blur-sm border-b border-slate-50">
+           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                 <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <ClipboardList size={20} className="text-indigo-600" /> Recent Requests
+                 </h3>
+                 <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full">
+                   {gatePasses.length} TOTAL
+                 </span>
+              </div>
+              <div className="flex items-center gap-3">
+                 <Button variant="secondary" size="sm" className="gap-2 text-slate-600">
+                    <Filter size={16} /> Filters
+                 </Button>
+              </div>
+           </div>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-12 space-y-4">
+               {[1, 2, 3].map(i => <div key={i} className="h-24 bg-slate-50 animate-pulse rounded-2xl" />)}
+            </div>
+          ) : gatePasses.length === 0 ? (
+            <div className="p-20 text-center">
+              <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-slate-300">
+                <ClipboardList size={40} />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 tracking-tight">No requests found</h3>
+              <p className="text-slate-500 font-medium mt-2 max-w-sm mx-auto">
+                {isAdmin ? 'There are no pending gate pass applications at this time.' : 'You haven\'t applied for any gate passes yet.'}
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-50">
+               {gatePasses.map((gp) => {
+                 const config = statusConfig[gp.status] || { bg: 'bg-slate-50', text: 'text-slate-600', dot: 'bg-slate-500' };
+                 return (
+                   <motion.div 
                     layout
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="minimal-card"
-                    style={{ padding: '25px', display: 'grid', gridTemplateColumns: isAdmin ? '2fr 3fr 2fr' : '3fr 2fr', gap: '30px', alignItems: 'center' }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ 
-                          padding: '6px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700,
-                          background: status.bg, color: status.text, display: 'flex', alignItems: 'center', gap: '6px'
-                        }}>
-                          {status.icon} {gp.status.toUpperCase()}
-                        </span>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                          Applied on {new Date(gp.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '5px' }}>
-                        <FileText size={18} color="var(--color-accent)" />
-                        <p style={{ fontWeight: 500 }}>{gp.reason}</p>
-                      </div>
-                      {isAdmin && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '5px' }}>
-                          <User size={16} color="var(--color-text-muted)" />
-                          <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{gp.student_id?.name || 'Unknown Student'}</span>
-                          <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>({gp.student_id?.email || 'No email'})</span>
+                    key={gp._id}
+                    className="p-6 hover:bg-slate-50/50 transition-all flex flex-col md:flex-row md:items-center gap-8 group"
+                   >
+                     <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-3">
+                           <span className={cn(
+                             "px-3 py-1 rounded-full text-[10px] font-black tracking-widest flex items-center gap-1.5",
+                             config.bg, config.text
+                           )}>
+                             {config.icon} {gp.status.toUpperCase()}
+                           </span>
+                           <span className="text-xs font-bold text-slate-400">
+                             Applied {new Date(gp.createdAt).toLocaleDateString()}
+                           </span>
                         </div>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '20px' }}>
-                      <div style={{ flex: 1, background: 'var(--color-bg)', padding: '12px', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
-                        <p style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '4px', fontWeight: 600 }}>Departure</p>
-                        <p style={{ fontSize: '0.9rem', fontWeight: 500 }}>{new Date(gp.departure_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</p>
-                      </div>
-                      <div style={{ flex: 1, background: 'var(--color-bg)', padding: '12px', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
-                        <p style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '4px', fontWeight: 600 }}>Expected Return</p>
-                        <p style={{ fontSize: '0.9rem', fontWeight: 500 }}>{new Date(gp.return_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</p>
-                      </div>
-                    </div>
-
-                    {isAdmin ? (
-                      <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                        {gp.status === 'Pending' ? (
-                          <>
-                            <button 
-                              onClick={() => handleStatusUpdate(gp._id, 'Approved')}
-                              className="btn-primary" 
-                              style={{ background: '#10B981', border: 'none', padding: '8px 16px', fontSize: '0.85rem' }}
-                            >
-                              Accept
-                            </button>
-                            <button 
-                              onClick={() => handleStatusUpdate(gp._id, 'Declined')}
-                              className="btn-secondary" 
-                              style={{ color: '#DC2626', borderColor: '#FCA5A5', padding: '8px 16px', fontSize: '0.85rem' }}
-                            >
-                              Decline
-                            </button>
-                          </>
-                        ) : (
-                          <div style={{ textAlign: 'right' }}>
-                            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
-                              Note: {gp.review_note || 'No note provided'}
-                            </p>
+                        <h4 className="text-lg font-black text-slate-900 tracking-tight leading-tight">{gp.reason}</h4>
+                        {isAdmin && (
+                          <div className="flex items-center gap-2 pt-1">
+                             <div className="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-[10px] font-bold">
+                                {gp.student_id?.name?.charAt(0)}
+                             </div>
+                             <span className="text-sm font-bold text-slate-600">{gp.student_id?.name}</span>
                           </div>
                         )}
-                      </div>
-                    ) : (
-                      gp.review_note && (
-                        <div style={{ gridColumn: 'span 2', marginTop: '10px', padding: '12px', background: '#F9FAFB', borderRadius: '8px', borderLeft: `4px solid ${status.text}` }}>
-                          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-                            <strong>Warden's Note:</strong> {gp.review_note}
-                          </p>
+                     </div>
+
+                     <div className="flex flex-wrap gap-4 md:w-80">
+                        <div className="flex-1 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                              <ArrowRight size={10} className="text-rose-500" /> Departure
+                           </p>
+                           <p className="text-xs font-black text-slate-900">
+                              {new Date(gp.departure_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                           </p>
                         </div>
-                      )
-                    )}
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-            
-            {gatePasses.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '100px', background: 'var(--color-surface)', borderRadius: '12px', border: '1px dashed var(--color-border)' }}>
-                <ClipboardList size={48} color="var(--color-text-muted)" style={{ marginBottom: '15px' }} />
-                <p style={{ color: 'var(--color-text-muted)' }}>No gate pass requests found.</p>
-              </div>
-            )}
+                        <div className="flex-1 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                              <ChevronRight size={10} className="text-emerald-500 rotate-180" /> Return
+                           </p>
+                           <p className="text-xs font-black text-slate-900">
+                              {new Date(gp.return_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                           </p>
+                        </div>
+                     </div>
+
+                     <div className="flex items-center gap-3 md:w-48 justify-end">
+                        {isAdmin && gp.status === 'Pending' ? (
+                          <div className="flex gap-2">
+                             <Button 
+                              variant="secondary" 
+                              size="sm" 
+                              className="text-rose-600 bg-rose-50 hover:bg-rose-100 border-none rounded-xl"
+                              onClick={() => handleStatusUpdate(gp._id, 'Declined')}
+                             >
+                               <XCircle size={18} />
+                             </Button>
+                             <Button 
+                              variant="secondary" 
+                              size="sm" 
+                              className="text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border-none rounded-xl"
+                              onClick={() => handleStatusUpdate(gp._id, 'Approved')}
+                             >
+                               <CheckCircle size={18} />
+                             </Button>
+                          </div>
+                        ) : (
+                          <Button variant="ghost" size="icon" className="text-slate-400 group-hover:text-indigo-600 rounded-xl transition-colors">
+                             <MoreHorizontal size={20} />
+                          </Button>
+                        )}
+                     </div>
+                   </motion.div>
+                 )
+               })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Apply Modal */}
+      <AnimatePresence>
+        {showApplyForm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+             <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               onClick={() => setShowApplyForm(false)}
+               className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+             />
+             <motion.div 
+               initial={{ opacity: 0, y: 20, scale: 0.95 }}
+               animate={{ opacity: 1, y: 0, scale: 1 }}
+               exit={{ opacity: 0, y: 20, scale: 0.95 }}
+               className="bg-white rounded-[32px] w-full max-w-lg overflow-hidden relative shadow-2xl z-[110]"
+             >
+                <div className="p-8 bg-indigo-600 text-white relative">
+                   <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl w-fit mb-4">
+                      <Sparkles size={24} />
+                   </div>
+                   <h2 className="text-2xl font-black tracking-tight">Request Gate Pass</h2>
+                   <p className="text-indigo-100 text-sm font-medium mt-1">Submit your leave application for approval</p>
+                   <button onClick={() => setShowApplyForm(false)} className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors">
+                      <XCircle size={24} />
+                   </button>
+                </div>
+                
+                <form onSubmit={handleApply} className="p-8 space-y-6">
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Reason for Leave</label>
+                      <textarea 
+                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500/10 outline-none min-h-[100px]"
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        placeholder="Explain your reason for leaving..."
+                        required
+                      />
+                   </div>
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Departure</label>
+                        <input 
+                          type="datetime-local"
+                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500/10 outline-none"
+                          value={departureTime}
+                          min={minDateTime}
+                          onChange={(e) => setDepartureTime(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Return</label>
+                        <input 
+                          type="datetime-local"
+                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500/10 outline-none"
+                          value={returnTime}
+                          min={departureTime || minDateTime}
+                          onChange={(e) => setReturnTime(e.target.value)}
+                          required
+                        />
+                      </div>
+                   </div>
+                   <Button variant="gradient" className="w-full h-14 rounded-2xl font-black tracking-tight mt-4">
+                      Submit Request
+                   </Button>
+                </form>
+             </motion.div>
           </div>
         )}
-      </main>
+      </AnimatePresence>
     </div>
   );
 };

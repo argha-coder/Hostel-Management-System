@@ -2,7 +2,8 @@ import User from '../models/User.js';
 import OTP from '../models/OTP.js';
 import Room from '../models/Room.js';
 import { generateToken } from '../utils/generateToken.js';
-import { sendOTP } from '../utils/email.js';
+import { sendOTP, sendResetEmail } from '../utils/email.js';
+import crypto from 'crypto';
 
 // Utility to generate a 6-digit OTP
 const generate6DigitOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -14,9 +15,7 @@ export const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
-    if (!email.endsWith('@gmail.com') && !email.endsWith('@example.com') && !email.endsWith('@uhostel.com')) {
-      return res.status(400).json({ message: 'Only @gmail.com, @example.com or @uhostel.com addresses are allowed' });
-    }
+
 
     const userExists = await User.findOne({ email });
 
@@ -109,15 +108,13 @@ export const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    if (!email.endsWith('@gmail.com') && !email.endsWith('@example.com') && !email.endsWith('@uhostel.com')) {
-      return res.status(400).json({ message: 'Only @gmail.com, @example.com or @uhostel.com addresses are allowed' });
-    }
+
 
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
-      // Permanent fix: Skip OTP for specific admin email
-      if (email === 'admin@uhostel.com') {
+      // Admin Bypass: Allow all Admin users to skip OTP for immediate access
+      if (user.role === 'Admin') {
         generateToken(res, user._id);
         return res.status(200).json({
           _id: user._id,
@@ -238,14 +235,24 @@ export const getUsers = async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
+    const search = req.query.search || '';
+    const query = { role: 'Student' };
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
     const [users, total] = await Promise.all([
-      User.find({ role: 'Student' })
+      User.find(query)
         .select('-password')
         .populate('room_id', 'room_number')
         .skip(skip)
         .limit(limit)
         .lean(),
-      User.countDocuments({ role: 'Student' })
+      User.countDocuments(query)
     ]);
 
     res.json({
@@ -334,6 +341,83 @@ export const changePassword = async (req, res) => {
     } else {
       res.status(401).json({ message: 'Invalid current password' });
     }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Forgot Password - Send reset link
+// @route   POST /api/auth/forgot-password
+// @access  Public
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found with this email' });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+
+    // Hash and set to user model
+    user.resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    // Set expiry (10 minutes)
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+
+    await user.save();
+
+    // Create reset URL
+    const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
+
+    try {
+      await sendResetEmail(user.email, resetUrl);
+      res.status(200).json({ message: 'Email sent successfully' });
+    } catch (error) {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save();
+      return res.status(500).json({ message: 'Email could not be sent' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Reset Password
+// @route   PUT /api/auth/reset-password/:token
+// @access  Public
+export const resetPassword = async (req, res) => {
+  // Get hashed token
+  const resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
+
+  try {
+    const user = await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+
+    // Set new password
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+
+    res.status(200).json({ message: 'Password reset successful' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
