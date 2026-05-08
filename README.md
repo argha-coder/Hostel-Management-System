@@ -1,63 +1,56 @@
-<<<<<<< HEAD
 <div align="center">
 
-<img src="frontend/public/icon.svg" width="80" height="80" alt="UHostel Logo" />
+<img src="frontend/public/icon.svg" width="100" height="100" alt="UHostel Logo" />
 
-# UHostel Management System
+# UHostel Premium
+### The Next-Generation Hostel Management Experience
 
-**A modern, full-stack hostel management platform built with React + Node.js**
+**A sleek, high-performance SaaS platform built for modern campus life.**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-6366f1.svg)](LICENSE)
-![Node](https://img.shields.io/badge/Node.js-18%2B-brightgreen)
-![React](https://img.shields.io/badge/React-18-61dafb)
-![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248)
+[![License: MIT](https://img.shields.io/badge/License-MIT-6366f1.svg?style=for-the-badge)](LICENSE)
+[![Node](https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://mongodb.com)
 
 </div>
 
 ---
 
-## ✨ Features
+## ✨ Premium Features
 
 | Module | Description |
 |---|---|
-| 🔐 **Auth** | OTP-based email verification, JWT sessions, role-based access (Student / Warden) |
-| 🏠 **Rooms** | Room allocation, availability tracking, student assignment |
-| 🚪 **Gate Pass** | Apply, approve/reject gate passes with email notifications |
-| 🍽️ **E-Canteen** | Browse menu, place orders, track order status |
-| 📋 **Notices** | Post and view hostel notices |
-| 💸 **Fines** | Issue and track student fines |
-| 📅 **Bookings** | Manage room bookings |
-| 💬 **Chat** | Real-time messaging (AI/support) |
-| 🕵️ **Tracking** | Real-time visitor analytics via Discord webhooks |
+| 🔐 **Elite Auth** | OTP-based verification, secure JWT sessions, and **Advanced Password Recovery**. |
+| 💎 **Branding** | Professional "U" identity with a custom glassmorphism UI design. |
+| 🏠 **Smart Rooms** | Automated room allocation, real-time availability, and resident tracking. |
+| 🎫 **Express Gate Pass** | Instant digital applications with automated warden approval workflows. |
+| 🛒 **E-Canteen 2.0** | Integrated **Razorpay** payments, automated receipts, and instant inventory management. |
+| 📊 **Admin Insights** | High-level statistics, occupancy rates, and financial overviews. |
+| 💬 **Support Suite** | Real-time messaging and an integrated student security center. |
+| ⚡ **Performance** | Optimized background visitor tracking and ultra-fast asset delivery. |
 
 ---
 
-## 🗂️ Project Structure
+## 🗂️ Project Architecture
 
-```
+```bash
 IP/
-├── backend/                  # Node.js + Express + MongoDB
-│   ├── scripts/              # Seed scripts & utilities
-│   └── src/
-│       ├── config/           # Database connection
-│       ├── controllers/      # Route handlers
-│       ├── middleware/        # Auth middleware
-│       ├── models/           # Mongoose schemas
-│       ├── routes/           # API route definitions
-│       ├── utils/            # Email, token helpers
-│       └── server.js         # Entry point
+├── backend/                  # Scalable Node.js + Express API
+│   ├── src/
+│   │   ├── controllers/      # Business logic & Route handlers
+│   │   ├── models/           # Mongoose schemas (optimized with indexes)
+│   │   ├── utils/            # Email engine, JWT & security helpers
+│   │   └── server.js         # Optimized entry point with DB pooling
+│   └── scripts/              # Intelligent data seeding tools
 │
-├── frontend/                 # React + Vite
-│   ├── public/               # Static assets (icon, etc.)
-│   └── src/
-│       ├── components/       # Reusable UI components
-│       ├── pages/            # Route-level page components
-│       ├── store/            # Redux Toolkit state
-│       ├── utils/            # API client
-│       └── App.jsx           # Router & layout
+├── frontend/                 # High-performance React + Vite SPA
+│   ├── src/
+│   │   ├── components/       # Premium UI components (Framer Motion)
+│   │   ├── pages/            # Modern dashboard modules
+│   │   ├── store/            # Redux Toolkit state management
+│   │   └── utils/            # API client & specialized services (PDF/Receipts)
 │
-├── .gitignore
-└── README.md
+└── ...
 ```
 
 ---
@@ -65,129 +58,54 @@ IP/
 ## 🚀 Getting Started
 
 ### Prerequisites
+- **Node.js** (v18+)
+- **MongoDB Atlas** account
+- **Razorpay** API Keys (for canteen)
+- **SMTP** Credentials (for OTP/Reset emails)
 
-- **Node.js** v18 or higher
-- **MongoDB** (local instance or [MongoDB Atlas](https://www.mongodb.com/atlas))
-- **npm** v9+
+### 1. Environment Setup
+Create a `.env` file in the `backend` folder:
+```env
+PORT=5001
+MONGO_URI=your_mongodb_atlas_uri
+JWT_SECRET=your_jwt_secret
+CLIENT_URL=http://localhost:5173
 
-### 1. Clone the repository
+# SMTP Configuration
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
 
-```bash
-git clone https://github.com/your-username/uhostel.git
-cd uhostel
+# Razorpay Keys
+RAZORPAY_KEY_ID=your_id
+RAZORPAY_KEY_SECRET=your_secret
 ```
 
-### 2. Backend Setup
-
+### 2. Launch
 ```bash
+# Backend
 cd backend
 npm install
-```
-
-Copy the example env file and fill in your values:
-
-```bash
-cp .env.example .env
-```
-
-> See [backend/.env.example](backend/.env.example) for all required variables.
-
-Start the dev server:
-
-```bash
 npm run dev
-# Runs on http://localhost:5001
-```
 
-### 3. Frontend Setup
-
-```bash
+# Frontend
 cd frontend
 npm install
 npm run dev
-# Runs on http://localhost:5173
 ```
 
 ---
 
-## ⚙️ Environment Variables
+## 🛠️ Technology Stack
 
-Create `backend/.env` with the following:
-
-```env
-NODE_ENV=development
-PORT=5001
-MONGO_URI=mongodb://localhost:27017/uhostel
-
-# JWT
-JWT_SECRET=your_super_secret_key_here
-
-# SMTP (for OTP emails)
-SMTP_SERVICE=gmail
-SMTP_HOST=smtp.gmail.com
-SMTP_SECURE=false
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_gmail_app_password
-```
-
-> ⚠️ **Never commit your `.env` file.** It is already listed in `.gitignore`.
-
----
-
-## 🛠️ Tech Stack
-
-**Frontend**
-- [React 18](https://react.dev/) + [Vite](https://vitejs.dev/)
-- [Redux Toolkit](https://redux-toolkit.js.org/) — state management
-- [Framer Motion](https://www.framer.com/motion/) — animations
-- [Lucide React](https://lucide.dev/) — icons
-- [React Router v6](https://reactrouter.com/)
-
-**Backend**
-- [Node.js](https://nodejs.org/) + [Express 5](https://expressjs.com/)
-- [MongoDB](https://www.mongodb.com/) + [Mongoose](https://mongoosejs.com/)
-- [JWT](https://jwt.io/) — authentication
-- [Nodemailer](https://nodemailer.com/) — OTP emails
-- [bcryptjs](https://github.com/dcodeIO/bcrypt.js) — password hashing
-
----
-
-## 📜 Available Scripts
-
-### Backend
-| Command | Description |
-|---|---|
-| `npm run dev` | Start with nodemon (hot reload) |
-
-### Frontend
-| Command | Description |
-|---|---|
-| `npm run dev` | Start Vite dev server |
-| `npm run build` | Build for production |
-| `npm run preview` | Preview production build |
-| `npm run lint` | Run ESLint |
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Commit changes: `git commit -m 'feat: add my feature'`
-4. Push to branch: `git push origin feature/my-feature`
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
+- **Frontend**: React 18, Vite, Redux Toolkit, Framer Motion, Tailwind CSS, Lucide Icons.
+- **Backend**: Node.js, Express 5, Mongoose, JWT, Nodemailer, Razorpay SDK.
+- **Tools**: PostCSS, Autoprefixer, Axios, jsPDF.
 
 ---
 
 <div align="center">
-Made with ❤️ for the IP Project
+
+**Built with excellence for the IP Project.**  
+Elevate your campus experience with **UHostel**.
+
 </div>
-=======
-# Hostel-Management-System
->>>>>>> 1296b0afec22d382b8a5f98bab6198524e8f3cd4
